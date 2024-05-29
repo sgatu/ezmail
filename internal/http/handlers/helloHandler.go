@@ -6,23 +6,15 @@ import (
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/sgatu/ezmail/internal/infrastructure/repositories"
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/mysqldialect"
+	"github.com/sgatu/ezmail/internal/domain/models/user"
 )
 
-type helloHandler struct{}
+type helloHandler struct {
+	userRepo user.UserRepository
+}
 
 func (h *helloHandler) hello(w http.ResponseWriter, r *http.Request) {
-	sqldb, err := sql.Open("mysql", "")
-	if err != nil {
-		w.Write([]byte("Error sql. " + err.Error()))
-		return
-	}
-	db := bun.NewDB(sqldb, mysqldialect.New())
-	defer db.Close()
-	repo := repositories.NewMysqlUserRepository(db)
-	user, err := repo.GetById(r.Context(), "bca")
+	user, err := h.userRepo.GetById(r.Context(), "bca")
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(404)
@@ -33,6 +25,5 @@ func (h *helloHandler) hello(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	fmt.Printf("%+v\n", user)
-	w.Write([]byte(fmt.Sprintf("Found user %s, id %s", user.Name, user.Id)))
+	fmt.Fprintf(w, "Found user %s, id %s", user.Name, user.Id)
 }

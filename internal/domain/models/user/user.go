@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -50,7 +51,7 @@ func (u *User) VerifyPassword(hasher PasswordHasher, password string) bool {
 }
 
 type UserRepository interface {
-	GetById(id string) (*User, error)
-	FindByEmailAndPassword(email string, password string) (*User, error)
-	Save()
+	GetById(ctx context.Context, id string) (*User, error)
+	FindByEmailAndPassword(ctx context.Context, email string, password string) (*User, error)
+	Save(ctx context.Context, user User) error
 }
