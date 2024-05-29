@@ -2,11 +2,14 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/uptrace/bun"
 )
+
+var ErrUserNotFoundError = fmt.Errorf("user not found")
 
 type User struct {
 	bun.BaseModel `bun:"table:user,alias:u"`
@@ -19,12 +22,12 @@ type User struct {
 	Name          string
 }
 
-func CreateNewUser(node *snowflake.Node, passwordHasher PasswordHasher, email string, password string, name string) (User, error) {
+func CreateNewUser(node *snowflake.Node, passwordHasher PasswordHasher, email string, password string, name string) (*User, error) {
 	pass, err := passwordHasher.HashPassword(password)
 	if err != nil {
-		return User{}, err
+		return nil, err
 	}
-	return User{
+	return &User{
 		Id:         node.Generate().String(),
 		Email:      email,
 		Name:       name,
@@ -53,5 +56,5 @@ func (u *User) VerifyPassword(hasher PasswordHasher, password string) bool {
 type UserRepository interface {
 	GetById(ctx context.Context, id string) (*User, error)
 	FindByEmailAndPassword(ctx context.Context, email string, password string) (*User, error)
-	Save(ctx context.Context, user User) error
+	Save(ctx context.Context, user *User) error
 }
