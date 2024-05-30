@@ -7,14 +7,16 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/snowflake"
+	"github.com/sgatu/ezmail/internal/domain/models/auth"
 	"github.com/sgatu/ezmail/internal/domain/models/user"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories"
 	"github.com/uptrace/bun"
 )
 
 type AppContext struct {
-	UserRepository user.UserRepository
-	SnowflakeNode  *snowflake.Node
+	UserRepository      user.UserRepository
+	AuthTokenRepository auth.AuthTokenRepository
+	SnowflakeNode       *snowflake.Node
 }
 
 func SetupAppContext(db *bun.DB) *AppContext {
@@ -29,7 +31,8 @@ func SetupAppContext(db *bun.DB) *AppContext {
 		panic(err)
 	}
 	return &AppContext{
-		UserRepository: repositories.NewMysqlUserRepository(db),
-		SnowflakeNode:  snowflakeNode,
+		UserRepository:      repositories.NewMysqlUserRepository(db),
+		AuthTokenRepository: repositories.NewMysqlAuthTokenRepository(db),
+		SnowflakeNode:       snowflakeNode,
 	}
 }

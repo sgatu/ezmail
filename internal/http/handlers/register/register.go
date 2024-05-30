@@ -37,7 +37,7 @@ func (rh *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		common.ReturnError(common.InvalidRequestBodyError(), w)
 		return
 	}
-	usr, err := user.CreateNewUser(rh.snowflakeNode, &user.BcryptPasswordHasher{}, registerReq.Email, registerReq.Password, registerReq.Name)
+	usr, err := user.CreateNewUser(rh.snowflakeNode, user.BcryptPasswordHasher, registerReq.Email, registerReq.Password, registerReq.Name)
 	if err != nil {
 		common.ReturnError(err, w)
 		return

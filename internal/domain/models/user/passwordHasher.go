@@ -6,9 +6,9 @@ type PasswordHasher interface {
 	HashPassword(password string) (string, error)
 	VerifyPassword(hashedPassword string, password string) bool
 }
-type BcryptPasswordHasher struct{}
+type bcryptPasswordHasher struct{}
 
-func (ph *BcryptPasswordHasher) HashPassword(password string) (string, error) {
+func (ph *bcryptPasswordHasher) HashPassword(password string) (string, error) {
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -16,6 +16,8 @@ func (ph *BcryptPasswordHasher) HashPassword(password string) (string, error) {
 	return string(hashedPass), nil
 }
 
-func (ph *BcryptPasswordHasher) VerifyPassword(hashedPassword string, password string) bool {
+func (ph *bcryptPasswordHasher) VerifyPassword(hashedPassword string, password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)) == nil
 }
+
+var BcryptPasswordHasher *bcryptPasswordHasher = &bcryptPasswordHasher{}
