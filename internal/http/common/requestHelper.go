@@ -44,6 +44,15 @@ func EntityNotFoundError(entityType string) BaseError {
 	}
 }
 
+func UnauthorizedError() BaseError {
+	return BaseError{
+		Context:       make(map[string]string),
+		Message:       "Not authorized",
+		ErrIdentifier: "ERR_NOT_AUTHORIZED",
+		Code:          http.StatusUnauthorized,
+	}
+}
+
 func rawMessage(message []byte, status int, w http.ResponseWriter) {
 	w.WriteHeader(status)
 	w.Write(message)
