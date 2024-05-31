@@ -32,9 +32,8 @@ func SetupRoutes(r *chi.Mux, appContext *internal_http.AppContext) {
 		r.Use(secureMiddleware())
 		// after this authorized endpoints
 		r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-			currUser := r.Context().Value(internal_http.CurrentUserKey)
-			current_user, _ := currUser.(*user.User)
-			fmt.Fprintf(w, "Current user - Name: %s, Id: %s", current_user.Name, current_user.Id)
+			currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
+			fmt.Fprintf(w, "Current user - Name: %s, Id: %s", currUser.Name, currUser.Id)
 		})
 	})
 }
