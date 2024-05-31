@@ -1,10 +1,12 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/auth"
@@ -16,7 +18,33 @@ import (
 type AppContext struct {
 	UserRepository      user.UserRepository
 	AuthTokenRepository auth.AuthTokenRepository
+	AuthManager         authManager
 	SnowflakeNode       *snowflake.Node
+}
+
+type authManager struct {
+	authTokenRepository auth.AuthTokenRepository
+	userRepository      user.UserRepository
+}
+
+type currentUserKey struct{}
+
+var CurrentUserKey currentUserKey = currentUserKey{}
+
+func (am *authManager) ValidateToken(ctx context.Context, token string) *user.User {
+	tok, err := am.authTokenRepository.GetAuthTokenByToken(ctx, token)
+	if err != nil {
+		return nil
+	}
+	isValid := tok.Expire.IsZero() || tok.Expire.After(time.Now())
+	if !isValid {
+		return nil
+	}
+	user, err := am.userRepository.GetById(ctx, tok.UserId)
+	if err != nil {
+		return nil
+	}
+	return user
 }
 
 func SetupAppContext(db *bun.DB) *AppContext {
@@ -30,9 +58,12 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	if err != nil {
 		panic(err)
 	}
+	authRepository := repositories.NewMysqlAuthTokenRepository(db)
+	userRepository := repositories.NewMysqlUserRepository(db)
 	return &AppContext{
-		UserRepository:      repositories.NewMysqlUserRepository(db),
-		AuthTokenRepository: repositories.NewMysqlAuthTokenRepository(db),
+		UserRepository:      userRepository,
+		AuthTokenRepository: authRepository,
+		AuthManager:         authManager{authTokenRepository: authRepository, userRepository: userRepository},
 		SnowflakeNode:       snowflakeNode,
 	}
 }

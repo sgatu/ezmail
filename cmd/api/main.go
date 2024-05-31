@@ -27,6 +27,7 @@ func main() {
 	db := bun.NewDB(sqldb, mysqldialect.New())
 	defer db.Close()
 	appContext := internal_http.SetupAppContext(db)
+	handlers.SetupMiddlewares(server, appContext)
 	handlers.SetupRoutes(server, appContext)
 	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), server)
 }
