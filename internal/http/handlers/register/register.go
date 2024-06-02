@@ -34,17 +34,17 @@ func (rh *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 	var registerReq registerRequest
 	err := json.NewDecoder(r.Body).Decode(&registerReq)
 	if err != nil {
-		common.ReturnError(common.InvalidRequestBodyError(), w)
+		common.ErrorResponse(common.InvalidRequestBodyError(), w)
 		return
 	}
 	usr, err := user.CreateNewUser(rh.snowflakeNode, user.BcryptPasswordHasher, registerReq.Email, registerReq.Password, registerReq.Name)
 	if err != nil {
-		common.ReturnError(err, w)
+		common.ErrorResponse(err, w)
 		return
 	}
 	err = rh.userRepo.Save(r.Context(), usr)
 	if err != nil {
-		common.ReturnError(err, w)
+		common.ErrorResponse(err, w)
 		return
 	}
 	common.EntityCreated(usr.Id, "user", w)

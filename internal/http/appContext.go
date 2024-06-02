@@ -10,20 +10,24 @@ import (
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/auth"
+	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/user"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories"
 	"github.com/uptrace/bun"
 )
 
 type AppContext struct {
-	UserRepository      user.UserRepository
-	AuthTokenRepository auth.AuthTokenRepository
-	AuthManager         authManager
-	SnowflakeNode       *snowflake.Node
+	UserRepository       user.UserRepository
+	AuthTokenRepository  auth.AuthTokenRepository
+	SessionRepository    auth.SessionRepository
+	DomainInfoRepository domain.DomainInfoRepository
+	AuthManager          authManager
+	SnowflakeNode        *snowflake.Node
 }
 
 type authManager struct {
 	authTokenRepository auth.AuthTokenRepository
+	sessionRepository   auth.SessionRepository
 	userRepository      user.UserRepository
 }
 
@@ -32,15 +36,26 @@ type currentUserKey struct{}
 var CurrentUserKey currentUserKey = currentUserKey{}
 
 func (am *authManager) ValidateToken(ctx context.Context, token string) *user.User {
-	tok, err := am.authTokenRepository.GetAuthTokenByToken(ctx, token)
-	if err != nil {
+	userId := ""
+	tokenType := auth.GetTokenType(token)
+	switch tokenType {
+	case auth.TOKEN_TYPE_AUTH:
+		tok, err := am.authTokenRepository.GetAuthTokenByToken(ctx, token)
+		// we didn't find a token or expire > 0 but before now
+		if err != nil || (!tok.Expire.IsZero() && tok.Expire.Before(time.Now())) {
+			return nil
+		}
+		userId = tok.UserId
+	case auth.TOKEN_TYPE_SESSION:
+		session, err := am.sessionRepository.GetSessionBySessionId(ctx, token)
+		if err != nil || session.Expire.Before(time.Now()) {
+			return nil
+		}
+		userId = session.UserId
+	default:
 		return nil
 	}
-	isValid := tok.Expire.IsZero() || tok.Expire.After(time.Now())
-	if !isValid {
-		return nil
-	}
-	user, err := am.userRepository.GetById(ctx, tok.UserId)
+	user, err := am.userRepository.GetById(ctx, userId)
 	if err != nil {
 		return nil
 	}
@@ -60,10 +75,14 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	}
 	authRepository := repositories.NewMysqlAuthTokenRepository(db)
 	userRepository := repositories.NewMysqlUserRepository(db)
+	sessionRepository := repositories.NewMysqlSessionRepository(db)
+	domainInfoRepository := repositories.NewMysqlDomainInfoRepository(db)
 	return &AppContext{
-		UserRepository:      userRepository,
-		AuthTokenRepository: authRepository,
-		AuthManager:         authManager{authTokenRepository: authRepository, userRepository: userRepository},
-		SnowflakeNode:       snowflakeNode,
+		UserRepository:       userRepository,
+		AuthTokenRepository:  authRepository,
+		SessionRepository:    sessionRepository,
+		DomainInfoRepository: domainInfoRepository,
+		AuthManager:          authManager{authTokenRepository: authRepository, userRepository: userRepository, sessionRepository: sessionRepository},
+		SnowflakeNode:        snowflakeNode,
 	}
 }

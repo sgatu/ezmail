@@ -2,8 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base32"
 	"fmt"
 	"time"
 
@@ -28,7 +26,7 @@ func CreateAuthToken(snowflakeNode *snowflake.Node, userId string, expire *time.
 	if expire != nil {
 		tokenExpire.Time = *expire
 	}
-	token, err := generateNewToken()
+	token, err := generateToken(TOKEN_TYPE_AUTH)
 	if err != nil {
 		return nil, err
 	}
@@ -39,19 +37,6 @@ func CreateAuthToken(snowflakeNode *snowflake.Node, userId string, expire *time.
 		Expire:  tokenExpire,
 		Created: time.Now(),
 	}, nil
-}
-
-func generateNewToken() (string, error) {
-	token := "ezmail_"
-	randomBytes := make([]byte, 20)
-	_, err := rand.Reader.Read(randomBytes)
-	if err != nil {
-		return "", err
-	}
-	resultEncoded := make([]byte, base32.StdEncoding.EncodedLen(len(randomBytes)))
-	base32.StdEncoding.Encode(resultEncoded, randomBytes)
-	token = token + string(resultEncoded)
-	return token, nil
 }
 
 func (auth *AuthToken) DisableToken() {

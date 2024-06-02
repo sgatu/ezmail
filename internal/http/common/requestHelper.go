@@ -53,33 +53,48 @@ func UnauthorizedError() BaseError {
 	}
 }
 
+func InternalServerError(err error) BaseError {
+	return BaseError{
+		Context:       make(map[string]string),
+		Message:       fmt.Sprintf("Internal server error. Info: %s", err.Error()),
+		ErrIdentifier: "ERR_GENERIC",
+		Code:          http.StatusInternalServerError,
+	}
+}
+
 func rawMessage(message []byte, status int, w http.ResponseWriter) {
 	w.WriteHeader(status)
 	w.Write(message)
 }
 
-func ReturnError(err error, w http.ResponseWriter) {
-	switch e := err.(type) {
+func ReturnReponse(response any, statusCode int, w http.ResponseWriter) {
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		rawMessage([]byte("Failed to serialize error"), http.StatusInternalServerError, w)
+		return
+	}
+	rawMessage(jsonData, statusCode, w)
+}
+
+func OkResponse(response any, w http.ResponseWriter) {
+	ReturnReponse(response, http.StatusOK, w)
+}
+
+func CreatedResponse(response any, w http.ResponseWriter) {
+	ReturnReponse(response, http.StatusCreated, w)
+}
+
+func ErrorResponse(theError error, w http.ResponseWriter) {
+	switch e := theError.(type) {
 	case BaseError:
-		jsonData, err := json.Marshal(e)
-		if err != nil {
-			rawMessage([]byte("Failed to serialize error"), http.StatusInternalServerError, w)
-			return
-		}
-		rawMessage(jsonData, e.Code, w)
+		ReturnReponse(e, e.Code, w)
 	default:
-		jsonData, err := json.Marshal(BaseError{
+		ReturnReponse(BaseError{
 			Context:       make(map[string]string),
 			Message:       e.Error(),
 			ErrIdentifier: "ERR_GENERIC",
 			Code:          http.StatusInternalServerError,
-		})
-		if err != nil {
-			rawMessage([]byte("Failed to serialize error"), http.StatusInternalServerError, w)
-			return
-		}
-		rawMessage(jsonData, http.StatusInternalServerError, w)
-
+		}, http.StatusInternalServerError, w)
 	}
 }
 
