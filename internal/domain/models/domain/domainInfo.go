@@ -53,9 +53,11 @@ const (
 )
 
 type DnsRecord struct {
-	Type   string          `json:"type"`
-	Value  string          `json:"value"`
-	Status DnsRecordStatus `json:"status"`
+	Purpose string          `json:"purpose"` // SPF, DKIM, VALIDATION
+	Type    string          `json:"type"`    // MX, CNAME, TXT
+	Name    string          `json:"name"`
+	Value   string          `json:"value"`
+	Status  DnsRecordStatus `json:"status"`
 }
 
 type DomainInfoRepository interface {
