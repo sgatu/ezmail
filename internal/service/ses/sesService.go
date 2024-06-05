@@ -44,7 +44,8 @@ func (s *SESService) CreateDomain(
 		return nil, err
 	}
 	_, err = s.awsSesClient.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
-		EmailIdentity: &domainName,
+		EmailIdentity:  &domainName,
+		MailFromDomain: aws.String(fmt.Sprintf("dispatch.%s", domainName)),
 	}, func(o *sesv2.Options) { o.Region = region })
 	if err != nil {
 		s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainName}, func(o *sesv2.Options) { o.Region = region })
