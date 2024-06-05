@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/auth"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/user"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories"
+	"github.com/sgatu/ezmail/internal/service/ses"
 	"github.com/uptrace/bun"
 )
 
@@ -21,6 +23,7 @@ type AppContext struct {
 	AuthTokenRepository  auth.AuthTokenRepository
 	SessionRepository    auth.SessionRepository
 	DomainInfoRepository domain.DomainInfoRepository
+	SESService           *ses.SESService
 	AuthManager          authManager
 	SnowflakeNode        *snowflake.Node
 }
@@ -73,6 +76,10 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	if err != nil {
 		panic(err)
 	}
+	awsConfig, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic(err)
+	}
 	authRepository := repositories.NewMysqlAuthTokenRepository(db)
 	userRepository := repositories.NewMysqlUserRepository(db)
 	sessionRepository := repositories.NewMysqlSessionRepository(db)
@@ -83,6 +90,7 @@ func SetupAppContext(db *bun.DB) *AppContext {
 		SessionRepository:    sessionRepository,
 		DomainInfoRepository: domainInfoRepository,
 		AuthManager:          authManager{authTokenRepository: authRepository, userRepository: userRepository, sessionRepository: sessionRepository},
+		SESService:           ses.NewSESService(domainInfoRepository, awsConfig, snowflakeNode),
 		SnowflakeNode:        snowflakeNode,
 	}
 }

@@ -15,6 +15,7 @@ type DomainInfo struct {
 	DomainName    string    `bun:",notnull"`
 	UserId        string    `bun:",notnull"`
 	RawDnsRecords string    `bun:"records,notnull"`
+	Region        string    `bun:",notnull"`
 	Created       time.Time `bun:",notnull"`
 	dnsRecords    []DnsRecord
 	Validated     bool `bun:",notnull"`
