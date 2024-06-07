@@ -3,14 +3,12 @@ package ses
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
-	"github.com/sgatu/ezmail/internal/domain/models/user"
 )
 
 type SESService struct {
@@ -29,42 +27,46 @@ func NewSESService(domainRepository domain.DomainInfoRepository, awsConfig aws.C
 
 func (s *SESService) CreateDomain(
 	ctx context.Context,
-	user *user.User,
-	domainName string,
-	region string,
-) (*domain.DomainInfo, error) {
-	_, err := s.awsSesClient.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{
-		EmailIdentity:         &domainName,
+	domainInfo *domain.DomainInfo,
+) error {
+	// create identity
+	createIdentityResult, err := s.awsSesClient.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{
+		EmailIdentity:         &domainInfo.DomainName,
 		DkimSigningAttributes: &types.DkimSigningAttributes{NextSigningKeyLength: types.DkimSigningKeyLengthRsa2048Bit},
 		Tags: []types.Tag{
-			{Key: aws.String("user"), Value: aws.String(user.Id)},
+			{Key: aws.String("user"), Value: aws.String(domainInfo.UserId)},
 		},
-	}, func(o *sesv2.Options) { o.Region = region })
+	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	// create mail from configuration
 	_, err = s.awsSesClient.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
-		EmailIdentity:  &domainName,
-		MailFromDomain: aws.String(fmt.Sprintf("dispatch.%s", domainName)),
-	}, func(o *sesv2.Options) { o.Region = region })
+		EmailIdentity:  &domainInfo.DomainName,
+		MailFromDomain: aws.String(fmt.Sprintf("dispatch.%s", domainInfo.DomainName)),
+	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	if err != nil {
-		s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainName}, func(o *sesv2.Options) { o.Region = region })
-		return nil, err
+		s.DeleteIdentity(ctx, domainInfo)
+		return err
 	}
-	identity, err := s.awsSesClient.GetEmailIdentity(ctx, &sesv2.GetEmailIdentityInput{EmailIdentity: &domainName}, func(o *sesv2.Options) { o.Region = region })
+	setDNSRecords(createIdentityResult.DkimAttributes.Tokens, domainInfo)
+	err = s.domainRepository.Save(ctx, domainInfo)
 	if err != nil {
-		s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainName}, func(o *sesv2.Options) { o.Region = region })
-		return nil, err
+		s.DeleteIdentity(ctx, domainInfo)
+		return err
 	}
-	domainInfo := &domain.DomainInfo{
-		Id:         s.snowflakeNode.Generate().String(),
-		DomainName: domainName,
-		UserId:     user.Id,
-		Region:     region,
-		Created:    time.Now().UTC(),
-	}
+	return nil
+}
+
+func (s *SESService) DeleteIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
+	_, err := s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainInfo.DomainName}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
+	return err
+}
+
+func setDNSRecords(dkimTokens []string, domainInfo *domain.DomainInfo) {
 	records := make([]domain.DnsRecord, 0, 3)
-	for _, domainToken := range identity.DkimAttributes.Tokens {
+	for _, domainToken := range dkimTokens {
 		records = append(records, domain.DnsRecord{
 			Purpose: "DKIM",
 			Type:    "CNAME",
@@ -73,11 +75,12 @@ func (s *SESService) CreateDomain(
 			Status:  domain.DNS_RECORD_STATUS_PENDING,
 		})
 	}
+
 	records = append(records, domain.DnsRecord{
 		Purpose: "SPF",
 		Type:    "MX",
 		Name:    "dispatch",
-		Value:   fmt.Sprintf("10 feedback-smtp.%s.amazonses.com", region),
+		Value:   fmt.Sprintf("10 feedback-smtp.%s.amazonses.com", domainInfo.Region),
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})
 	records = append(records, domain.DnsRecord{
@@ -88,10 +91,4 @@ func (s *SESService) CreateDomain(
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})
 	domainInfo.SetDnsRecords(records)
-	err = s.domainRepository.Save(ctx, domainInfo)
-	if err != nil {
-		s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainName}, func(o *sesv2.Options) { o.Region = region })
-		return nil, err
-	}
-	return domainInfo, nil
 }

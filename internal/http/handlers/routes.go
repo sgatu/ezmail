@@ -7,6 +7,7 @@ import (
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/common"
 	"github.com/sgatu/ezmail/internal/http/handlers/auth/login"
+	"github.com/sgatu/ezmail/internal/http/handlers/auth/token"
 	"github.com/sgatu/ezmail/internal/http/handlers/domain"
 	"github.com/sgatu/ezmail/internal/http/handlers/register"
 )
@@ -29,5 +30,6 @@ func SetupRoutes(r *chi.Mux, appContext *internal_http.AppContext) {
 	register.RegisterHandler(appContext, r)
 	r.With(secureMiddleware()).Group(func(r chi.Router) {
 		domain.DomainHandler(appContext, r)
+		token.RegisterAuthToken(appContext, r)
 	})
 }
