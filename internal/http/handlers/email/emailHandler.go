@@ -23,7 +23,13 @@ func RegisterEmailHandler(appCtx *internal_http.AppContext, r chi.Router) {
 }
 
 type sendEmailRequest struct {
-	From string `json:"from"`
+	From     string   `json:"from"`
+	Subject  string   `json:"subject"`
+	TextBody *string  `json:"text"`
+	HtmlBody *string  `json:"html"`
+	ReplyTo  *string  `json:"reply_to"`
+	To       []string `json:"to"`
+	Cco      []string `json:"cco"`
 }
 
 func (eh *emailHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
