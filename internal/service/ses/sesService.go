@@ -12,16 +12,12 @@ import (
 )
 
 type SESService struct {
-	domainRepository domain.DomainInfoRepository
-	awsSesClient     *sesv2.Client
-	snowflakeNode    *snowflake.Node
+	awsSesClient *sesv2.Client
 }
 
 func NewSESService(domainRepository domain.DomainInfoRepository, awsConfig aws.Config, snowflakeNode *snowflake.Node) *SESService {
 	return &SESService{
-		snowflakeNode:    snowflakeNode,
-		domainRepository: domainRepository,
-		awsSesClient:     sesv2.NewFromConfig(awsConfig),
+		awsSesClient: sesv2.NewFromConfig(awsConfig),
 	}
 }
 
@@ -51,11 +47,6 @@ func (s *SESService) CreateDomain(
 		return err
 	}
 	setDNSRecords(createIdentityResult.DkimAttributes.Tokens, domainInfo)
-	err = s.domainRepository.Save(ctx, domainInfo)
-	if err != nil {
-		s.DeleteIdentity(ctx, domainInfo)
-		return err
-	}
 	return nil
 }
 

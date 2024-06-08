@@ -41,6 +41,5 @@ func (repo *mysqlSessionRepository) GetSessionBySessionId(ctx context.Context, s
 }
 
 func (repo *mysqlSessionRepository) Save(ctx context.Context, session *auth.Session) error {
-	_, err := repo.db.NewInsert().Model(session).Exec(ctx)
-	return err
+	return upsert(session, ctx, repo.db)
 }

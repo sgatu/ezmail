@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/user"
@@ -17,6 +18,7 @@ func DomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 	domHandler := &domainHandler{
 		sesService:           ctx.SESService,
 		domainInfoRepository: ctx.DomainInfoRepository,
+		snowflakeNode:        ctx.SnowflakeNode,
 	}
 	router.Post("/domain", domHandler.createDomain)
 	router.Get("/domain/{id}", domHandler.getDomain)
@@ -26,6 +28,7 @@ func DomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 type domainHandler struct {
 	sesService           *ses.SESService
 	domainInfoRepository domain.DomainInfoRepository
+	snowflakeNode        *snowflake.Node
 }
 
 type createDomainRequest struct {
@@ -88,6 +91,7 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 	}
 	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
 	domainInfo := &domain.DomainInfo{
+		Id:         dh.snowflakeNode.Generate().String(),
 		Created:    time.Now().UTC(),
 		DomainName: createDomainReq.Name,
 		Region:     createDomainReq.Region,

@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/sgatu/ezmail/internal/domain/models/user"
 	"github.com/uptrace/bun"
@@ -39,13 +38,11 @@ func (userRepo *mysqlUserRepository) FindByEmailAndPassword(ctx context.Context,
 		return nil, err
 	}
 	if !u.VerifyPassword(user.BcryptPasswordHasher, password) {
-		fmt.Println("Could not verify passsword")
 		return nil, user.ErrUserNotFoundError
 	}
 	return u, nil
 }
 
 func (userRepo *mysqlUserRepository) Save(ctx context.Context, u *user.User) error {
-	_, err := userRepo.db.NewInsert().Model(u).Exec(ctx)
-	return err
+	return upsert(u, ctx, userRepo.db)
 }

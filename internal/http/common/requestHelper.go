@@ -22,6 +22,10 @@ type entityCreated struct {
 	EntityType string `json:"type"`
 }
 
+type resultMessage struct {
+	Message string `json:"message"`
+}
+
 func (be BaseError) Error() string {
 	return be.Message
 }
@@ -31,6 +35,15 @@ func InvalidRequestBodyError() BaseError {
 		Context:       make(map[string]string),
 		Message:       "Invalid request body",
 		ErrIdentifier: "ERR_INVALID_BODY",
+		Code:          http.StatusBadRequest,
+	}
+}
+
+func InvalidRequest() BaseError {
+	return BaseError{
+		Context:       make(map[string]string),
+		Message:       "Invalid request",
+		ErrIdentifier: "ERR_INVALID_REQUEST",
 		Code:          http.StatusBadRequest,
 	}
 }
@@ -78,6 +91,10 @@ func ReturnReponse(response any, statusCode int, w http.ResponseWriter) {
 
 func OkResponse(response any, w http.ResponseWriter) {
 	ReturnReponse(response, http.StatusOK, w)
+}
+
+func OkOperation(w http.ResponseWriter) {
+	OkResponse(resultMessage{Message: "Operation successful"}, w)
 }
 
 func CreatedResponse(response any, w http.ResponseWriter) {

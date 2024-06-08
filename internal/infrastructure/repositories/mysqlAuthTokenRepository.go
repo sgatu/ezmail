@@ -40,7 +40,16 @@ func (repo *mysqlAuthTokenRepository) GetAuthTokenByToken(ctx context.Context, t
 	return authToken, nil
 }
 
+func (repo *mysqlAuthTokenRepository) GetAuthTokensByUserId(ctx context.Context, userId string) ([]auth.AuthToken, error) {
+	var authTokens []auth.AuthToken
+	err := repo.db.NewSelect().Model((*auth.AuthToken)(nil)).Where("user_id = ?", userId).Scan(ctx, &authTokens)
+	if err != nil {
+		return []auth.AuthToken{}, err
+	}
+	return authTokens, nil
+}
+
 func (repo *mysqlAuthTokenRepository) Save(ctx context.Context, authToken *auth.AuthToken) error {
-	_, err := repo.db.NewInsert().Model(authToken).Exec(ctx)
+	err := upsert(authToken, ctx, repo.db)
 	return err
 }

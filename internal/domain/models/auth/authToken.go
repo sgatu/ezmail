@@ -39,8 +39,7 @@ func CreateAuthToken(
 	id := snowflakeNode.Generate().String()
 	tokenExpire := bun.NullTime{}
 	if expire != nil {
-		tokenExpire.Time = *expire
-		tokenExpire.Time = tokenExpire.UTC()
+		tokenExpire.Time = (*expire).UTC()
 	}
 	token, err := generateToken(TOKEN_TYPE_AUTH)
 	if err != nil {
@@ -64,5 +63,6 @@ func (auth *AuthToken) DisableToken() {
 type AuthTokenRepository interface {
 	GetAuthTokenById(ctx context.Context, id string) (*AuthToken, error)
 	GetAuthTokenByToken(ctx context.Context, token string) (*AuthToken, error)
+	GetAuthTokensByUserId(ctx context.Context, userId string) ([]AuthToken, error)
 	Save(ctx context.Context, authToken *AuthToken) error
 }

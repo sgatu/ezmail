@@ -23,7 +23,9 @@ func RegisterAuthToken(appContext *internal_http.AppContext, router chi.Router) 
 		authTokenRepository: appContext.AuthTokenRepository,
 		snowflakeNode:       appContext.SnowflakeNode,
 	}
-	router.Post("/token", handler.createNewToken)
+	router.Get("/tokens", handler.getAllTokens)
+	router.Post("/tokens", handler.createNewToken)
+	router.Delete("/tokens/{id}", handler.disableToken)
 }
 
 type createTokenRequest struct {
@@ -31,6 +33,7 @@ type createTokenRequest struct {
 	AccessType *auth.AuthTokenAccessType `json:"access_type"`
 	Name       string                    `json:"name"`
 }
+
 type tokenResponse struct {
 	Id         string `json:"id"`
 	Name       string `json:"name"`
@@ -91,4 +94,47 @@ func (ath *authTokenHandler) createNewToken(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	common.ReturnReponse(tokenToTokenResponse(authToken), http.StatusCreated, w)
+}
+
+func (ath *authTokenHandler) disableToken(w http.ResponseWriter, r *http.Request) {
+	tokenId := chi.URLParam(r, "id")
+	if tokenId == "" {
+		common.ErrorResponse(common.InvalidRequest(), w)
+		return
+	}
+	tok, err := ath.authTokenRepository.GetAuthTokenById(r.Context(), tokenId)
+	if err != nil {
+		if err == auth.ErrNoAuthTokenFound {
+			common.ErrorResponse(common.EntityNotFoundError("token"), w)
+		} else {
+			common.ErrorResponse(err, w)
+		}
+		return
+	}
+	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
+	if tok.UserId != currUser.Id {
+		common.ErrorResponse(common.EntityNotFoundError("token"), w)
+		return
+	}
+	tok.DisableToken()
+	err = ath.authTokenRepository.Save(r.Context(), tok)
+	if err != nil {
+		common.ErrorResponse(err, w)
+		return
+	}
+	common.OkOperation(w)
+}
+
+func (ath *authTokenHandler) getAllTokens(w http.ResponseWriter, r *http.Request) {
+	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
+	toks, err := ath.authTokenRepository.GetAuthTokensByUserId(r.Context(), currUser.Id)
+	if err != nil {
+		common.ErrorResponse(common.InternalServerError(err), w)
+		return
+	}
+	toksResponse := make([]tokenResponse, 0, len(toks))
+	for _, t := range toks {
+		toksResponse = append(toksResponse, tokenToTokenResponse(&t))
+	}
+	common.OkResponse(toksResponse, w)
 }
