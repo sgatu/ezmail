@@ -62,7 +62,7 @@ type DnsRecord struct {
 
 type DomainInfoRepository interface {
 	GetAll(ctx context.Context) ([]DomainInfo, error)
-	GetDomainInfoById(ctx context.Context, id string) (*DomainInfo, error)
+	GetDomainInfoById(ctx context.Context, id int64) (*DomainInfo, error)
 	GetDomainInfoByName(ctx context.Context, name string) (*DomainInfo, error)
 	Save(ctx context.Context, di *DomainInfo) error
 }

@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -131,7 +132,12 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
-	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainId)
+	domainIdInt, err := strconv.ParseInt(domainId, 10, 64)
+	if err != nil {
+		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
+		return
+	}
+	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
 	if err != nil {
 		if err == domain.ErrDomainInfoNotFound {
 			common.ErrorResponse(common.EntityNotFoundError("domain"), w)
