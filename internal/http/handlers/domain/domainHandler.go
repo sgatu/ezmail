@@ -44,10 +44,10 @@ type domainRecordResponse struct {
 	Status     string `json:"status"`
 }
 type domainResponse struct {
-	Id        int64                  `json:"id,string"`
 	Name      string                 `json:"name"`
 	CreatedAt string                 `json:"created_at"`
 	Records   []domainRecordResponse `json:"records"`
+	Id        int64                  `json:"id,string"`
 	Validated bool                   `json:"validated"`
 }
 
