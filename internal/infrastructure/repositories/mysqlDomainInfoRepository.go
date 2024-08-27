@@ -29,9 +29,20 @@ func (repo *mysqlDomainInfoRepository) GetDomainInfoById(ctx context.Context, id
 	return di, nil
 }
 
-func (repo *mysqlDomainInfoRepository) GetAllByUserId(ctx context.Context, userId string) ([]domain.DomainInfo, error) {
+func (repo *mysqlDomainInfoRepository) GetDomainInfoByName(ctx context.Context, name string) (*domain.DomainInfo, error) {
+	di := &domain.DomainInfo{}
+	err := repo.db.NewSelect().Model(di).Where("domain_name = ?", name).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrDomainInfoNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	return di, nil
+}
+
+func (repo *mysqlDomainInfoRepository) GetAll(ctx context.Context) ([]domain.DomainInfo, error) {
 	var domainInfos []domain.DomainInfo
-	err := repo.db.NewSelect().Model((*domain.DomainInfo)(nil)).Where("user_id = ?", userId).Scan(ctx, &domainInfos)
+	err := repo.db.NewSelect().Model((*domain.DomainInfo)(nil)).Scan(ctx, &domainInfos)
 	if err != nil {
 		return []domain.DomainInfo{}, err
 	}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -125,4 +127,21 @@ func EntityCreated(id string, entityType string, w http.ResponseWriter) {
 		rawMessage([]byte("Could not serialize data"), http.StatusInternalServerError, w)
 	}
 	rawMessage(jsonData, http.StatusCreated, w)
+}
+
+type RegistrationMethod func(path string, handlerfunc http.HandlerFunc)
+
+func RegisterEndpoint(
+	method RegistrationMethod,
+	path string,
+	handlerfunc http.HandlerFunc,
+	description string,
+) {
+	methodName := runtime.FuncForPC(reflect.ValueOf(method).Pointer()).Name()
+	methodNameParts := strings.Split(methodName, ".")
+	methodName = methodNameParts[len(methodNameParts)-1]
+	methodNameParts = strings.Split(methodName, "-")
+	methodName = strings.ToUpper(methodNameParts[0])
+	fmt.Printf("%s %s -> %s\n", methodName, path, description)
+	method(path, handlerfunc)
 }

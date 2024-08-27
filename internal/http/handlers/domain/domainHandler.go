@@ -8,7 +8,6 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
-	"github.com/sgatu/ezmail/internal/domain/models/user"
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/common"
 	"github.com/sgatu/ezmail/internal/service/ses"
@@ -20,9 +19,9 @@ func DomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 		domainInfoRepository: ctx.DomainInfoRepository,
 		snowflakeNode:        ctx.SnowflakeNode,
 	}
-	router.Post("/domain", domHandler.createDomain)
-	router.Get("/domain/{id}", domHandler.getDomain)
-	router.Get("/domain", domHandler.getUserDomains)
+	common.RegisterEndpoint(router.Post, "/domain", domHandler.createDomain, "Register new domain in the system")
+	common.RegisterEndpoint(router.Get, "/domain/{id}", domHandler.getDomain, "Get a domain identified by {id}")
+	common.RegisterEndpoint(router.Get, "/domain", domHandler.getDomains, "Get all domains")
 }
 
 type domainHandler struct {
@@ -89,13 +88,11 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.InvalidRequestBodyError(), w)
 		return
 	}
-	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
 	domainInfo := &domain.DomainInfo{
 		Id:         dh.snowflakeNode.Generate().String(),
 		Created:    time.Now().UTC(),
 		DomainName: createDomainReq.Name,
 		Region:     createDomainReq.Region,
-		UserId:     currUser.Id,
 	}
 	err = dh.sesService.CreateDomain(r.Context(), domainInfo)
 	if err != nil {
@@ -111,9 +108,8 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 	common.ReturnReponse(getCreateDomainResponse(domainInfo), 201, w)
 }
 
-func (dh *domainHandler) getUserDomains(w http.ResponseWriter, r *http.Request) {
-	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
-	doms, err := dh.domainInfoRepository.GetAllByUserId(r.Context(), currUser.Id)
+func (dh *domainHandler) getDomains(w http.ResponseWriter, r *http.Request) {
+	doms, err := dh.domainInfoRepository.GetAll(r.Context())
 	if err != nil {
 		if err == domain.ErrDomainInfoNotFound {
 			common.ErrorResponse(common.EntityNotFoundError("domain"), w)
@@ -135,7 +131,6 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
-	currUser, _ := r.Context().Value(internal_http.CurrentUserKey).(*user.User)
 	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainId)
 	if err != nil {
 		if err == domain.ErrDomainInfoNotFound {
@@ -143,10 +138,6 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 		} else {
 			common.ErrorResponse(common.InternalServerError(err), w)
 		}
-		return
-	}
-	if currUser.Id != dom.UserId {
-		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
 	common.ReturnReponse(getCreateDomainResponse(dom), 200, w)

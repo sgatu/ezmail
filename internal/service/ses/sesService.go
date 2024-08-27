@@ -11,6 +11,8 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 )
 
+const _DOMAIN_PREFIX = "dispatch"
+
 type SESService struct {
 	awsSesClient *sesv2.Client
 }
@@ -29,9 +31,6 @@ func (s *SESService) CreateDomain(
 	createIdentityResult, err := s.awsSesClient.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{
 		EmailIdentity:         &domainInfo.DomainName,
 		DkimSigningAttributes: &types.DkimSigningAttributes{NextSigningKeyLength: types.DkimSigningKeyLengthRsa2048Bit},
-		Tags: []types.Tag{
-			{Key: aws.String("user"), Value: aws.String(domainInfo.UserId)},
-		},
 	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	if err != nil {
 		return err
@@ -40,7 +39,7 @@ func (s *SESService) CreateDomain(
 	// create mail from configuration
 	_, err = s.awsSesClient.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
 		EmailIdentity:  &domainInfo.DomainName,
-		MailFromDomain: aws.String(fmt.Sprintf("dispatch.%s", domainInfo.DomainName)),
+		MailFromDomain: aws.String(fmt.Sprintf("%s.%s", _DOMAIN_PREFIX, domainInfo.DomainName)),
 	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	if err != nil {
 		s.DeleteIdentity(ctx, domainInfo)
@@ -70,14 +69,14 @@ func setDNSRecords(dkimTokens []string, domainInfo *domain.DomainInfo) {
 	records = append(records, domain.DnsRecord{
 		Purpose: "SPF",
 		Type:    "MX",
-		Name:    "dispatch",
+		Name:    _DOMAIN_PREFIX,
 		Value:   fmt.Sprintf("10 feedback-smtp.%s.amazonses.com", domainInfo.Region),
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})
 	records = append(records, domain.DnsRecord{
 		Purpose: "SPF",
 		Type:    "TXT",
-		Name:    "dispatch",
+		Name:    _DOMAIN_PREFIX,
 		Value:   "v=spf1 include:amazonses.com ~all",
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})

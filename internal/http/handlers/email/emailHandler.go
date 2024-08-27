@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	internal_http "github.com/sgatu/ezmail/internal/http"
+	"github.com/sgatu/ezmail/internal/http/common"
 	"github.com/sgatu/ezmail/internal/service/ses"
 )
 
@@ -19,7 +20,7 @@ func RegisterEmailHandler(appCtx *internal_http.AppContext, r chi.Router) {
 		domainRepo: appCtx.DomainInfoRepository,
 		sesService: appCtx.SESService,
 	}
-	r.Post("/email", eHandler.SendEmail)
+	common.RegisterEndpoint(r.Post, "/email", eHandler.SendEmail, "Send an email")
 }
 
 type sendEmailRequest struct {

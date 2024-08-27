@@ -11,14 +11,13 @@ import (
 
 type DomainInfo struct {
 	bun.BaseModel `bun:"table:domain,alias:di"`
-	Id            string    `bun:",pk"`
 	DomainName    string    `bun:",notnull"`
-	UserId        string    `bun:",notnull"`
 	RawDnsRecords string    `bun:"records,notnull"`
 	Region        string    `bun:",notnull"`
 	Created       time.Time `bun:",notnull"`
 	dnsRecords    []DnsRecord
-	Validated     bool `bun:",notnull"`
+	Id            int64 `bun:",pk"`
+	Validated     bool  `bun:",notnull"`
 }
 
 func (di *DomainInfo) GetDnsRecords() ([]DnsRecord, error) {
@@ -62,7 +61,8 @@ type DnsRecord struct {
 }
 
 type DomainInfoRepository interface {
-	GetAllByUserId(ctx context.Context, userId string) ([]DomainInfo, error)
+	GetAll(ctx context.Context) ([]DomainInfo, error)
 	GetDomainInfoById(ctx context.Context, id string) (*DomainInfo, error)
+	GetDomainInfoByName(ctx context.Context, name string) (*DomainInfo, error)
 	Save(ctx context.Context, di *DomainInfo) error
 }
