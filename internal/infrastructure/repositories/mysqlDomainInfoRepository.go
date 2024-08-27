@@ -18,7 +18,7 @@ func NewMysqlDomainInfoRepository(connection *bun.DB) *mysqlDomainInfoRepository
 	}
 }
 
-func (repo *mysqlDomainInfoRepository) GetDomainInfoById(ctx context.Context, id string) (*domain.DomainInfo, error) {
+func (repo *mysqlDomainInfoRepository) GetDomainInfoById(ctx context.Context, id int64) (*domain.DomainInfo, error) {
 	di := &domain.DomainInfo{Id: id}
 	err := repo.db.NewSelect().Model(di).WherePK().Scan(ctx)
 	if err == sql.ErrNoRows {

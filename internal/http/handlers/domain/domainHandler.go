@@ -43,7 +43,7 @@ type domainRecordResponse struct {
 	Status     string `json:"status"`
 }
 type domainResponse struct {
-	Id        string                 `json:"id"`
+	Id        int64                  `json:"id,string"`
 	Name      string                 `json:"name"`
 	CreatedAt string                 `json:"created_at"`
 	Records   []domainRecordResponse `json:"records"`
@@ -89,7 +89,7 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	domainInfo := &domain.DomainInfo{
-		Id:         dh.snowflakeNode.Generate().String(),
+		Id:         dh.snowflakeNode.Generate().Int64(),
 		Created:    time.Now().UTC(),
 		DomainName: createDomainReq.Name,
 		Region:     createDomainReq.Region,
