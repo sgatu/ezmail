@@ -3,9 +3,9 @@ package domain
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
+	"github.com/sgatu/ezmail/internal/domain/models"
 	"github.com/uptrace/bun"
 )
 
@@ -42,7 +42,9 @@ func (di *DomainInfo) SetDnsRecords(records []DnsRecord) error {
 	return nil
 }
 
-var ErrDomainInfoNotFound error = fmt.Errorf("domain info not found")
+func ErrDomainInfoNotFound(identifier string) error {
+	return models.NewMissingEntityError("domain info not found", identifier)
+}
 
 type DnsRecordStatus int
 

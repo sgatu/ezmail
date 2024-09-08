@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/sgatu/ezmail/internal/domain/models"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -107,6 +108,13 @@ func ErrorResponse(theError error, w http.ResponseWriter) {
 	switch e := theError.(type) {
 	case BaseError:
 		ReturnReponse(e, e.Code, w)
+	case *models.MissingEntityError:
+		ReturnReponse(BaseError{
+			Context:       map[string]string{"identifier": e.Identifier()},
+			Message:       e.Error(),
+			ErrIdentifier: "ERR_NOT_FOUND",
+			Code:          http.StatusNotFound,
+		}, http.StatusNotFound, w)
 	default:
 		ReturnReponse(BaseError{
 			Context:       make(map[string]string),

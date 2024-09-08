@@ -5,6 +5,7 @@ import (
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/handlers/domain"
 	"github.com/sgatu/ezmail/internal/http/handlers/email"
+	"github.com/sgatu/ezmail/internal/http/handlers/template"
 )
 
 /*func secureMiddleware() func(h http.Handler) http.Handler {
@@ -23,4 +24,5 @@ import (
 func SetupRoutes(r *chi.Mux, appContext *internal_http.AppContext) {
 	domain.DomainHandler(appContext, r)
 	email.RegisterEmailHandler(appContext, r)
+	template.RegisterTemplateHandler(appContext, r)
 }

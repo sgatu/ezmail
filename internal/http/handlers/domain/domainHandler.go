@@ -112,11 +112,7 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 func (dh *domainHandler) getDomains(w http.ResponseWriter, r *http.Request) {
 	doms, err := dh.domainInfoRepository.GetAll(r.Context())
 	if err != nil {
-		if err == domain.ErrDomainInfoNotFound {
-			common.ErrorResponse(common.EntityNotFoundError("domain"), w)
-		} else {
-			common.ErrorResponse(common.InternalServerError(err), w)
-		}
+		common.ErrorResponse(err, w)
 		return
 	}
 	domsResp := make([]domainResponse, 0, len(doms))
@@ -139,11 +135,7 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 	}
 	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
 	if err != nil {
-		if err == domain.ErrDomainInfoNotFound {
-			common.ErrorResponse(common.EntityNotFoundError("domain"), w)
-		} else {
-			common.ErrorResponse(common.InternalServerError(err), w)
-		}
+		common.ErrorResponse(err, w)
 		return
 	}
 	common.ReturnReponse(getCreateDomainResponse(dom), 200, w)

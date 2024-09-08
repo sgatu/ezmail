@@ -3,10 +3,10 @@ package email
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
+	"github.com/sgatu/ezmail/internal/domain/models"
 	"github.com/uptrace/bun"
 )
 
@@ -37,10 +37,15 @@ type Email struct {
 type CreateNewEmailRequest struct {
 	Context    map[string]string
 	ReplyTo    *string
-	CCO        *string
+	CCO        []string
 	From       string
 	To         []string
-	TemplateId int64
+	TemplateId int64 `json:",string"`
+}
+type CreateTemplateRequest struct {
+	Subject string
+	Text    string
+	Html    string
 }
 
 func (em *Email) getContext() map[string]string {
@@ -95,10 +100,13 @@ func NewTemplate(
 	}
 }
 
-var (
-	ErrTemplateNotFound error = fmt.Errorf("template not found")
-	ErrEmailNotFound    error = fmt.Errorf("email not found")
-)
+func ErrTemplateNotFound(identifier string) error {
+	return models.NewMissingEntityError("template not found", identifier)
+}
+
+func ErrEmailNotFound(identifer string) error {
+	return models.NewMissingEntityError("email not found", identifer)
+}
 
 type TemplateRepository interface {
 	GetById(ctx context.Context, id int64) (*Template, error)

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"strconv"
 
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/uptrace/bun"
@@ -22,7 +23,7 @@ func (repo *mysqlDomainInfoRepository) GetDomainInfoById(ctx context.Context, id
 	di := &domain.DomainInfo{Id: id}
 	err := repo.db.NewSelect().Model(di).WherePK().Scan(ctx)
 	if err == sql.ErrNoRows {
-		return nil, domain.ErrDomainInfoNotFound
+		return nil, domain.ErrDomainInfoNotFound(strconv.FormatInt(id, 10))
 	} else if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func (repo *mysqlDomainInfoRepository) GetDomainInfoByName(ctx context.Context, 
 	di := &domain.DomainInfo{}
 	err := repo.db.NewSelect().Model(di).Where("domain_name = ?", name).Scan(ctx)
 	if err == sql.ErrNoRows {
-		return nil, domain.ErrDomainInfoNotFound
+		return nil, domain.ErrDomainInfoNotFound(name)
 	} else if err != nil {
 		return nil, err
 	}

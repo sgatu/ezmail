@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"strconv"
 
 	"github.com/sgatu/ezmail/internal/domain/models/email"
 	"github.com/uptrace/bun"
@@ -22,7 +23,7 @@ func (repo *mysqlEmailRepository) GetById(ctx context.Context, id int64) (*email
 	emailEntity := &email.Email{Id: id}
 	err := repo.db.NewSelect().Model(emailEntity).WherePK().Scan(ctx)
 	if err == sql.ErrNoRows {
-		return nil, email.ErrEmailNotFound
+		return nil, email.ErrEmailNotFound(strconv.FormatInt(id, 10))
 	} else if err != nil {
 		return nil, err
 	}
