@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	internal_http "github.com/sgatu/ezmail/internal/http"
-	"github.com/sgatu/ezmail/internal/http/common"
+	internalhttp "github.com/sgatu/ezmail/internal/http"
+	"github.com/sgatu/ezmail/internal/http/handlers/common"
 )
 
-func authorizationMiddleware(appContext *internal_http.AppContext) func(h http.Handler) http.Handler {
+func authorizationMiddleware(appContext *internalhttp.AppContext) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("authorization")
@@ -40,6 +40,6 @@ func unauthorized(w http.ResponseWriter) {
 	}, w)
 }
 
-func SetupMiddlewares(router *chi.Mux, appContext *internal_http.AppContext) {
+func SetupMiddlewares(router *chi.Mux, appContext *internalhttp.AppContext) {
 	router.Use(authorizationMiddleware(appContext))
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/events"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	"github.com/sgatu/ezmail/internal/infrastructure/eventbus"
-	"github.com/sgatu/ezmail/internal/infrastructure/repositories"
+	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
 	"github.com/sgatu/ezmail/internal/service/ses"
 	"github.com/uptrace/bun"
 )
@@ -51,9 +51,9 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	if err != nil {
 		panic(err)
 	}
-	domainInfoRepository := repositories.NewMysqlDomainInfoRepository(db)
-	emailRepository := repositories.NewMysqlEmailRepository(db)
-	templateRepository := repositories.NewMysqlTemplateRepository(db)
+	domainInfoRepository := mysql.NewMysqlDomainInfoRepository(db)
+	emailRepository := mysql.NewMysqlEmailRepository(db)
+	templateRepository := mysql.NewMysqlTemplateRepository(db)
 
 	mainBusRedis := os.Getenv("COMMON_BUS_REDIS")
 	if mainBusRedis == "" {

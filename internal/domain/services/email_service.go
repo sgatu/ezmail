@@ -63,17 +63,21 @@ func (emService *EmailService) SendEmail(ctx context.Context, createEmail *email
 			return err
 		}
 	}
+
 	domain, err := emService.domainInfoRepository.GetDomainInfoByName(ctx, domainName)
 	if err != nil {
 		return err
 	}
+
 	if !domain.Validated {
 		return fmt.Errorf("domain not validated")
 	}
+
 	toEmails, err := json.Marshal(createEmail.To)
 	if err != nil {
 		return err
 	}
+
 	replyToEmail, err := getReplyTo(createEmail)
 	if err != nil {
 		return err
@@ -106,7 +110,9 @@ func (emService *EmailService) SendEmail(ctx context.Context, createEmail *email
 	emService.eventBus.Push(ctx, &events.NewEmailEvent{
 		When: time.Now().UTC(),
 		Id:   emailEntity.Id,
-		Type: "new_email",
+		TypedEvent: events.TypedEvent{
+			Type: "new_email",
+		},
 	}, "emails")
 	return nil
 }

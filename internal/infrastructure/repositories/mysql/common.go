@@ -1,8 +1,7 @@
-package repositories
+package mysql
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/uptrace/bun"
 )
@@ -21,13 +20,11 @@ func upsert(
 		return err
 	}
 	if affectedRows != 0 {
-		fmt.Println("bun upsert: update")
 		return nil
 	}
 	_, err = db.NewInsert().Model(model).Exec(ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Println("bun upsert: insert")
 	return nil
 }

@@ -1,4 +1,4 @@
-package email
+package handlers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/email"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	internal_http "github.com/sgatu/ezmail/internal/http"
-	"github.com/sgatu/ezmail/internal/http/common"
+	"github.com/sgatu/ezmail/internal/http/handlers/common"
 )
 
 type emailHandler struct {

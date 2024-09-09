@@ -1,4 +1,4 @@
-package domain
+package handlers
 
 import (
 	"encoding/json"
@@ -10,11 +10,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	internal_http "github.com/sgatu/ezmail/internal/http"
-	"github.com/sgatu/ezmail/internal/http/common"
+	"github.com/sgatu/ezmail/internal/http/handlers/common"
 	"github.com/sgatu/ezmail/internal/service/ses"
 )
 
-func DomainHandler(ctx *internal_http.AppContext, router chi.Router) {
+func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 	domHandler := &domainHandler{
 		sesService:           ctx.SESService,
 		domainInfoRepository: ctx.DomainInfoRepository,

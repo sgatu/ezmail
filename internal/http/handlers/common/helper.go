@@ -137,7 +137,10 @@ func EntityCreated(id string, entityType string, w http.ResponseWriter) {
 	rawMessage(jsonData, http.StatusCreated, w)
 }
 
-type RegistrationMethod func(path string, handlerfunc http.HandlerFunc)
+type (
+	RegistrationMethod       func(path string, handlerfunc http.HandlerFunc)
+	RegisterEndpointCallback func(method RegistrationMethod, path string, handlerfunc http.HandlerFunc, description string)
+)
 
 func RegisterEndpoint(
 	method RegistrationMethod,

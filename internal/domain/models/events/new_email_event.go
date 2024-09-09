@@ -7,8 +7,8 @@ import (
 
 type NewEmailEvent struct {
 	When time.Time `json:"when"`
-	Type string    `json:"type"`
-	Id   int64     `json:"id"`
+	TypedEvent
+	Id int64 `json:"id"`
 }
 
 func (nee *NewEmailEvent) Serialize() (string, error) {

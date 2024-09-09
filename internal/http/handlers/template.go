@@ -1,4 +1,4 @@
-package template
+package handlers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/email"
 	internal_http "github.com/sgatu/ezmail/internal/http"
-	"github.com/sgatu/ezmail/internal/http/common"
+	"github.com/sgatu/ezmail/internal/http/handlers/common"
 )
 
 type templateHandler struct {
