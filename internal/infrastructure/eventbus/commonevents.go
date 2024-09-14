@@ -31,7 +31,6 @@ func (ce *CommonEventsEventBus) Push(ctx context.Context, event events.Event, qu
 		Values: []string{"payload", eventData},
 	})
 	if result.Err() != nil {
-		fmt.Println("err2")
 		fmt.Println(result.Err())
 		return result.Err()
 	}

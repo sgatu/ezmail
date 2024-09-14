@@ -13,18 +13,16 @@ func authorizationMiddleware(appContext *internalhttp.AppContext) func(h http.Ha
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("authorization")
-			if authHeader != "" {
-				if !strings.HasPrefix(authHeader, "Bearer ") {
-					unauthorized(w)
-					return
-				}
-				authHeaderSplit := strings.SplitN(authHeader, " ", 2)
-				authHeader = authHeaderSplit[1]
-				err := appContext.ValidateToken(r.Context(), authHeader)
-				if err != nil {
-					unauthorized(w)
-					return
-				}
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				unauthorized(w)
+				return
+			}
+			authHeaderSplit := strings.SplitN(authHeader, " ", 2)
+			authHeader = authHeaderSplit[1]
+			err := appContext.ValidateToken(r.Context(), authHeader)
+			if err != nil {
+				unauthorized(w)
+				return
 			}
 			h.ServeHTTP(w, r)
 		})

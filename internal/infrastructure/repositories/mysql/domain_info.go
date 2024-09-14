@@ -50,6 +50,12 @@ func (repo *mysqlDomainInfoRepository) GetAll(ctx context.Context) ([]domain.Dom
 	return domainInfos, nil
 }
 
+func (repo *mysqlDomainInfoRepository) DeleteDomain(ctx context.Context, id int64) error {
+	di := &domain.DomainInfo{Id: id}
+	_, err := repo.db.NewDelete().Model(di).WherePK().Exec(ctx)
+	return err
+}
+
 func (repo *mysqlDomainInfoRepository) Save(ctx context.Context, di *domain.DomainInfo) error {
 	err := upsert(di, ctx, repo.db)
 	return err

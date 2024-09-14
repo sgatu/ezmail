@@ -11,10 +11,11 @@ import (
 
 type DomainInfo struct {
 	bun.BaseModel `bun:"table:domain,alias:di"`
-	DomainName    string    `bun:",notnull"`
-	RawDnsRecords string    `bun:"records,notnull"`
-	Region        string    `bun:",notnull"`
-	Created       time.Time `bun:",notnull"`
+	DomainName    string       `bun:",notnull"`
+	RawDnsRecords string       `bun:"records,notnull"`
+	Region        string       `bun:",notnull"`
+	Created       time.Time    `bun:",notnull"`
+	DeletedAt     bun.NullTime `bun:",soft_delete,nullzero"`
 	dnsRecords    []DnsRecord
 	Id            int64 `bun:",pk"`
 	Validated     bool  `bun:",notnull"`
@@ -66,5 +67,6 @@ type DomainInfoRepository interface {
 	GetAll(ctx context.Context) ([]DomainInfo, error)
 	GetDomainInfoById(ctx context.Context, id int64) (*DomainInfo, error)
 	GetDomainInfoByName(ctx context.Context, name string) (*DomainInfo, error)
+	DeleteDomain(ctx context.Context, id int64) error
 	Save(ctx context.Context, di *DomainInfo) error
 }

@@ -19,6 +19,13 @@ type Template struct {
 	Id            int64     `bun:",pk"`
 }
 
+type CompactTemplate struct {
+	bun.BaseModel `bun:"table:template,alias:tpl"`
+	Created       time.Time `bun:",notnull"`
+	Subject       string    `bun:",notnull"`
+	Id            int64     `bun:",pk" json:",string"`
+}
+
 type Email struct {
 	bun.BaseModel `bun:"table:email,alias:em"`
 	Created       time.Time `bun:",notnull"`
@@ -42,13 +49,14 @@ type CreateNewEmailRequest struct {
 	To         []string
 	TemplateId int64 `json:",string"`
 }
+
 type CreateTemplateRequest struct {
 	Subject string
 	Text    string
 	Html    string
 }
 
-func (em *Email) getContext() map[string]string {
+func (em *Email) GetContext() map[string]string {
 	if em.context == nil {
 		json.Unmarshal([]byte(em.ContextRaw), &em.context)
 	}
@@ -110,6 +118,7 @@ func ErrEmailNotFound(identifer string) error {
 
 type TemplateRepository interface {
 	GetById(ctx context.Context, id int64) (*Template, error)
+	GetAll(ctx context.Context) ([]CompactTemplate, error)
 	Save(ctx context.Context, tpl *Template) error
 }
 type EmailRepository interface {

@@ -23,6 +23,7 @@ func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 	common.RegisterEndpoint(router.Post, "/domain", domHandler.createDomain, "Register new domain in the system")
 	common.RegisterEndpoint(router.Get, "/domain/{id}", domHandler.getDomain, "Get a domain identified by {id}")
 	common.RegisterEndpoint(router.Get, "/domain", domHandler.getDomains, "Get all domains")
+	common.RegisterEndpoint(router.Delete, "/domain/{id}", domHandler.deleteDomain, "Soft deletes a domain (mark it as deleted in db and does not delete it from aws)")
 }
 
 type domainHandler struct {
@@ -139,4 +140,28 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.ReturnReponse(getCreateDomainResponse(dom), 200, w)
+}
+
+func (dh *domainHandler) deleteDomain(w http.ResponseWriter, r *http.Request) {
+	domainId := chi.URLParam(r, "id")
+	if domainId == "" {
+		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
+		return
+	}
+	domainIdInt, err := strconv.ParseInt(domainId, 10, 64)
+	if err != nil {
+		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
+		return
+	}
+	_, err = dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
+	if err != nil {
+		common.ErrorResponse(err, w)
+		return
+	}
+	err = dh.domainInfoRepository.DeleteDomain(r.Context(), domainIdInt)
+	if err != nil {
+		common.ErrorResponse(err, w)
+		return
+	}
+	common.OkOperation(w)
 }

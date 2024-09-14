@@ -1,0 +1,61 @@
+
+@host = http://localhost:3000
+@authorization = Bearer JprYgBBKYLlHcueu8v6ITRx9S
+@domain_id = 1834991192461910016
+@template_id = 1835007224123596800
+@email_id = 1832899994003808256
+
+# Get domains endpoint
+GET {{host}}/domain
+Authorization: {{authorization}}
+
+###
+# Get single domain
+GET {{host}}/domain/{{domain_id}}
+Authorization: {{authorization}}
+
+###
+# Create new domain
+POST {{host}}/domain
+Authorization: {{authorization}}
+Content-Type: application/json
+
+{
+	"name": "domain.tld",
+	"region": "eu-west-1"
+}
+
+###
+# Delete domain
+DELETE {{host}}/domain/{{domain_id}}
+Authorization: {{authorization}}
+
+
+###
+# Create a template
+POST {{host}}/template
+Authorization: {{authorization}}
+Content-Type: application/json
+
+{
+	"html":"<div>Hello [[FIRST_NAME]]</div>",
+	"text": "Hello [[FIRST_NAME]]",
+	"subject": "Salutations from [[COMPANY_NAME]]"
+}
+
+###
+# Get template
+GET {{host}}/template/{{template_id}}
+Authorization: {{authorization}}
+
+###
+# Get all templates
+GET {{host}}/template
+Authorization: {{authorization}}
+
+###
+# Get email
+GET {{host}}/email/{{email_id}}
+Authorization: {{authorization}}
+
+

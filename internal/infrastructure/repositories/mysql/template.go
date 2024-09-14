@@ -34,3 +34,12 @@ func (repo *mysqlTemplateRepository) Save(ctx context.Context, tpl *email.Templa
 	err := upsert(tpl, ctx, repo.db)
 	return err
 }
+
+func (repo *mysqlTemplateRepository) GetAll(ctx context.Context) ([]email.CompactTemplate, error) {
+	var templates []email.CompactTemplate
+	err := repo.db.NewSelect().Model((*email.CompactTemplate)(nil)).Scan(ctx, &templates)
+	if err != nil {
+		return []email.CompactTemplate{}, err
+	}
+	return templates, nil
+}

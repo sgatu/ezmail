@@ -38,6 +38,10 @@ func NewEmailService(
 	}
 }
 
+func (emService *EmailService) GetById(ctx context.Context, id int64) (*email.Email, error) {
+	return emService.emailRepository.GetById(ctx, id)
+}
+
 func (emService *EmailService) SendEmail(ctx context.Context, createEmail *email.CreateNewEmailRequest) error {
 	if createEmail.TemplateId == 0 {
 		return email.ErrTemplateNotFound("none")
