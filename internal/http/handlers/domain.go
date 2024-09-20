@@ -9,14 +9,14 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
+	"github.com/sgatu/ezmail/internal/domain/services"
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/handlers/common"
-	"github.com/sgatu/ezmail/internal/service/ses"
 )
 
 func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 	domHandler := &domainHandler{
-		sesService:           ctx.SESService,
+		identityManager:      ctx.IdentityManager,
 		domainInfoRepository: ctx.DomainInfoRepository,
 		snowflakeNode:        ctx.SnowflakeNode,
 	}
@@ -27,7 +27,7 @@ func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 }
 
 type domainHandler struct {
-	sesService           *ses.SESService
+	identityManager      services.IdentityManager
 	domainInfoRepository domain.DomainInfoRepository
 	snowflakeNode        *snowflake.Node
 }
@@ -90,20 +90,25 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.InvalidRequestBodyError(), w)
 		return
 	}
+	_, err = dh.domainInfoRepository.GetDomainInfoByName(r.Context(), createDomainReq.Name)
+	if err == nil {
+		common.ErrorResponse(common.DuplicateEntityError("domain"), w)
+		return
+	}
 	domainInfo := &domain.DomainInfo{
 		Id:         dh.snowflakeNode.Generate().Int64(),
 		Created:    time.Now().UTC(),
 		DomainName: createDomainReq.Name,
 		Region:     createDomainReq.Region,
 	}
-	err = dh.sesService.CreateDomain(r.Context(), domainInfo)
+	err = dh.identityManager.CreateIdentity(r.Context(), domainInfo)
 	if err != nil {
 		common.ReturnReponse(err.Error(), 500, w)
 		return
 	}
 	err = dh.domainInfoRepository.Save(r.Context(), domainInfo)
 	if err != nil {
-		dh.sesService.DeleteIdentity(r.Context(), domainInfo)
+		dh.identityManager.DeleteIdentity(r.Context(), domainInfo)
 		common.ErrorResponse(common.InternalServerError(err), w)
 		return
 	}
@@ -153,7 +158,9 @@ func (dh *domainHandler) deleteDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
-	_, err = dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
+	fullDeleteStr := r.URL.Query().Get("full")
+
+	theDomain, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
 	if err != nil {
 		common.ErrorResponse(err, w)
 		return
@@ -162,6 +169,13 @@ func (dh *domainHandler) deleteDomain(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		common.ErrorResponse(err, w)
 		return
+	}
+	if fullDeleteStr == "true" {
+		err = dh.identityManager.DeleteIdentity(r.Context(), theDomain)
+		if err != nil {
+			common.ErrorResponse(err, w)
+			return
+		}
 	}
 	common.OkOperation(w)
 }

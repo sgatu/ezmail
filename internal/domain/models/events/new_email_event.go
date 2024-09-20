@@ -5,10 +5,18 @@ import (
 	"time"
 )
 
+func CreateNewEmailEvent(id int64) *NewEmailEvent {
+	return &NewEmailEvent{
+		Id:   id,
+		When: time.Now().UTC(),
+		Type: "new_email",
+	}
+}
+
 type NewEmailEvent struct {
 	When time.Time `json:"when"`
-	TypedEvent
-	Id int64 `json:"id"`
+	Type string    `json:"type"`
+	Id   int64     `json:"id,string"`
 }
 
 func (nee *NewEmailEvent) Serialize() (string, error) {
@@ -17,4 +25,8 @@ func (nee *NewEmailEvent) Serialize() (string, error) {
 		return "", err
 	}
 	return string(result), nil
+}
+
+func (nee *NewEmailEvent) GetType() string {
+	return nee.Type
 }

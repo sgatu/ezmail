@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -57,6 +58,15 @@ func EntityNotFoundError(entityType string) BaseError {
 		Message:       fmt.Sprintf("%s not found", cases.Title(language.Und, cases.NoLower).String(entityType)),
 		ErrIdentifier: fmt.Sprintf("ERR_NOT_FOUND_%s", strings.ToUpper(entityType)),
 		Code:          http.StatusNotFound,
+	}
+}
+
+func DuplicateEntityError(entityType string) BaseError {
+	return BaseError{
+		Context:       make(map[string]string),
+		Message:       fmt.Sprintf("A %s with the same identifier already exists.", cases.Title(language.Und, cases.NoLower).String(entityType)),
+		ErrIdentifier: fmt.Sprintf("ERR_DUPLICATE_%s", strings.ToUpper(entityType)),
+		Code:          http.StatusBadRequest,
 	}
 }
 
@@ -153,6 +163,6 @@ func RegisterEndpoint(
 	methodName = methodNameParts[len(methodNameParts)-1]
 	methodNameParts = strings.Split(methodName, "-")
 	methodName = strings.ToUpper(methodNameParts[0])
-	fmt.Printf("%s %s -> %s\n", methodName, path, description)
+	slog.Debug(fmt.Sprintf("%s %s -> %s\n", methodName, path, description))
 	method(path, handlerfunc)
 }

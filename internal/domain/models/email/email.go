@@ -33,7 +33,7 @@ type Email struct {
 	From          string `bun:",notnull"`
 	ReplyTo       string `bun:""`
 	To            string `bun:",notnull"`
-	CCO           string `bun:"cco"`
+	BCC           string `bun:"bcc"`
 	ContextRaw    string `bun:"context,notnull"`
 	Processed     bool   `bun:",notnull"`
 	TemplateId    int64  `bun:",notnull"`
@@ -44,7 +44,7 @@ type Email struct {
 type CreateNewEmailRequest struct {
 	Context    map[string]string
 	ReplyTo    *string
-	CCO        []string
+	BCC        []string
 	From       string
 	To         []string
 	TemplateId int64 `json:",string"`
@@ -70,14 +70,14 @@ func NewEmail(
 	from string,
 	to string,
 	replyTo string,
-	cco string,
+	bcc string,
 	context map[string]string,
 ) (*Email, error) {
 	em := &Email{
 		Created:    time.Now().UTC(),
 		From:       from,
 		To:         to,
-		CCO:        cco,
+		BCC:        bcc,
 		ReplyTo:    replyTo,
 		context:    context,
 		TemplateId: templateId,

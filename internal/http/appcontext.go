@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"os"
 	"strconv"
@@ -16,14 +17,14 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/services"
 	"github.com/sgatu/ezmail/internal/infrastructure/eventbus"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
-	"github.com/sgatu/ezmail/internal/service/ses"
+	infra_services "github.com/sgatu/ezmail/internal/infrastructure/services"
 	"github.com/uptrace/bun"
 )
 
 type AppContext struct {
 	DomainInfoRepository domain.DomainInfoRepository
-	EmailService         *services.EmailService
-	SESService           *ses.SESService
+	EmailStoreService    services.EmailStoreService
+	IdentityManager      services.IdentityManager
 	SnowflakeNode        *snowflake.Node
 	TemplateRepository   email.TemplateRepository
 	CommonEventsBus      events.EventBus
@@ -41,7 +42,7 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
 		nodeId = rand.Int63()
-		fmt.Printf("No snowflake node id defined (missing env NODE_ID), generated random as %d\n", nodeId)
+		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId))
 	}
 	snowflakeNode, err := snowflake.NewNode(nodeId)
 	if err != nil {
@@ -66,12 +67,12 @@ func SetupAppContext(db *bun.DB) *AppContext {
 	})
 	commonEventBus := eventbus.NewCommonEventsEventBus(redisCli)
 
-	emailService := services.NewEmailService(emailRepository, templateRepository, domainInfoRepository, commonEventBus, snowflakeNode)
+	emailService := services.NewDefaultEmailStoreService(emailRepository, templateRepository, domainInfoRepository, commonEventBus, snowflakeNode)
 	return &AppContext{
 		DomainInfoRepository: domainInfoRepository,
-		SESService:           ses.NewSESService(domainInfoRepository, awsConfig, snowflakeNode),
+		IdentityManager:      infra_services.NewSESIdentityManager(domainInfoRepository, awsConfig, snowflakeNode),
 		SnowflakeNode:        snowflakeNode,
-		EmailService:         emailService,
+		EmailStoreService:    emailService,
 		TemplateRepository:   templateRepository,
 		CommonEventsBus:      commonEventBus,
 	}

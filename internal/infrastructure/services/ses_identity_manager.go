@@ -1,4 +1,4 @@
-package ses
+package services
 
 import (
 	"context"
@@ -9,24 +9,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
+	"github.com/sgatu/ezmail/internal/domain/services"
 )
 
 const _DOMAIN_PREFIX = "dispatch"
 
-type SESService struct {
+type SESIdentityManager struct {
 	awsSesClient *sesv2.Client
 }
 
-func NewSESService(domainRepository domain.DomainInfoRepository, awsConfig aws.Config, snowflakeNode *snowflake.Node) *SESService {
-	return &SESService{
+func NewSESIdentityManager(domainRepository domain.DomainInfoRepository, awsConfig aws.Config, snowflakeNode *snowflake.Node) services.IdentityManager {
+	return &SESIdentityManager{
 		awsSesClient: sesv2.NewFromConfig(awsConfig),
 	}
 }
 
-func (s *SESService) CreateDomain(
-	ctx context.Context,
-	domainInfo *domain.DomainInfo,
-) error {
+func (s *SESIdentityManager) CreateIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
 	// create identity
 	createIdentityResult, err := s.awsSesClient.CreateEmailIdentity(ctx, &sesv2.CreateEmailIdentityInput{
 		EmailIdentity:         &domainInfo.DomainName,
@@ -49,7 +47,7 @@ func (s *SESService) CreateDomain(
 	return nil
 }
 
-func (s *SESService) DeleteIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
+func (s *SESIdentityManager) DeleteIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
 	_, err := s.awsSesClient.DeleteEmailIdentity(ctx, &sesv2.DeleteEmailIdentityInput{EmailIdentity: &domainInfo.DomainName}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	return err
 }
