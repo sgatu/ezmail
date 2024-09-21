@@ -1,6 +1,13 @@
 package worker
 
-type Executor struct{}
+import (
+	"github.com/sgatu/ezmail/internal/domain/services"
+)
 
-func (e *Executor) Run() {
+type executor struct {
+	emailStoreService services.EmailStoreService
+	emailerService    services.Emailer
+}
+
+func (e *executor) Run() {
 }

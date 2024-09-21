@@ -30,15 +30,15 @@ type Email struct {
 	bun.BaseModel `bun:"table:email,alias:em"`
 	Created       time.Time `bun:",notnull"`
 	context       map[string]string
-	From          string `bun:",notnull"`
-	ReplyTo       string `bun:""`
-	To            string `bun:",notnull"`
-	BCC           string `bun:"bcc"`
-	ContextRaw    string `bun:"context,notnull"`
-	Processed     bool   `bun:",notnull"`
-	TemplateId    int64  `bun:",notnull"`
-	DomainId      int64  `bun:",notnull"`
-	Id            int64  `bun:",pk"`
+	ProcessedDate bun.NullTime `bun:",nullzero"`
+	From          string       `bun:",notnull"`
+	ReplyTo       string       `bun:"reply_to"`
+	To            string       `bun:",notnull"`
+	BCC           string       `bun:"bcc"`
+	ContextRaw    string       `bun:"context,notnull"`
+	TemplateId    int64        `bun:",notnull"`
+	DomainId      int64        `bun:",notnull"`
+	Id            int64        `bun:",pk"`
 }
 
 type CreateNewEmailRequest struct {
@@ -83,7 +83,6 @@ func NewEmail(
 		TemplateId: templateId,
 		DomainId:   domainId,
 		Id:         sNode.Generate().Int64(),
-		Processed:  false,
 	}
 	marshalResult, err := json.Marshal(context)
 	if err != nil {

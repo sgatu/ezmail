@@ -11,36 +11,37 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/services"
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/handlers/common"
+	"github.com/uptrace/bun"
 )
 
 type emailHandler struct {
 	emailService services.EmailStoreService
 }
 type emailResponse struct {
-	Created    time.Time         `json:"created"`
-	Context    map[string]string `json:"context"`
-	From       string            `json:"from"`
-	ReplyTo    string            `json:"reply_to"`
-	To         string            `json:"to"`
-	BCC        string            `json:"bcc"`
-	Processed  bool              `json:"processed"`
-	TemplateId int64             `json:"template_id,string"`
-	DomainId   int64             `json:"domain_id,string"`
-	Id         int64             `json:"id,string"`
+	Created       time.Time         `json:"created"`
+	Context       map[string]string `json:"context"`
+	ProcessedDate bun.NullTime      `json:"processed"`
+	From          string            `json:"from"`
+	ReplyTo       string            `json:"reply_to"`
+	To            string            `json:"to"`
+	BCC           string            `json:"bcc"`
+	TemplateId    int64             `json:"template_id,string"`
+	DomainId      int64             `json:"domain_id,string"`
+	Id            int64             `json:"id,string"`
 }
 
 func createEmailResponse(email *email.Email) emailResponse {
 	return emailResponse{
-		Created:    email.Created,
-		Context:    email.GetContext(),
-		From:       email.From,
-		ReplyTo:    email.ReplyTo,
-		To:         email.To,
-		BCC:        email.BCC,
-		Processed:  email.Processed,
-		TemplateId: email.TemplateId,
-		DomainId:   email.DomainId,
-		Id:         email.Id,
+		Created:       email.Created,
+		Context:       email.GetContext(),
+		From:          email.From,
+		ReplyTo:       email.ReplyTo,
+		To:            email.To,
+		BCC:           email.BCC,
+		ProcessedDate: email.ProcessedDate,
+		TemplateId:    email.TemplateId,
+		DomainId:      email.DomainId,
+		Id:            email.Id,
 	}
 }
 
