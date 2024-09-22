@@ -38,6 +38,10 @@ func (nep *NewEmailProcessor) Process(evt events.Event) error {
 		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id))
 		if nep.rescheduleConfig != nil {
 			rescheduledEvent := events.CreateRescheduledEmailEvent(email.Id, time.Now().Add(time.Duration(nep.rescheduleConfig.RetryTimeSeconds)*time.Second))
+			errReschedule := nep.scheduledEventsRepo.Push(ctx, rescheduledEvent.When, rescheduledEvent)
+			if errReschedule != nil {
+				err = fmt.Errorf("could not reschedule email due do: %w, original error %w", errReschedule, err)
+			}
 		}
 		return err
 	}
