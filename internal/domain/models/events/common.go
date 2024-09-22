@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type Event interface {
@@ -28,7 +29,7 @@ const (
 )
 
 type ScheduledEventRepository interface {
-	Push(ctx context.Context, evt Event) error
+	Push(ctx context.Context, when time.Time, evt Event) error
 	GetNext(ctx context.Context) (Event, error)
 	RemoveNext(ctx context.Context) error
 }
