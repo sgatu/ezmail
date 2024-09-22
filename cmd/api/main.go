@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"github.com/sgatu/ezmail/cmd/api/server"
 	internal_http "github.com/sgatu/ezmail/internal/http"
@@ -19,6 +21,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	setupLog()
 	server := server.NewServer()
 	sqldb, err := sql.Open("mysql", os.Getenv("MYSQL_DSN"))
 	if err != nil {
@@ -28,6 +31,20 @@ func main() {
 	defer db.Close()
 	appContext := internal_http.SetupAppContext(db)
 	handlers.SetupMiddlewares(server, appContext)
+	slog.Debug("Setting up routes")
 	handlers.SetupRoutes(server, appContext)
+	slog.Info(fmt.Sprintf("Server listening on :%s", os.Getenv("PORT")))
 	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), server)
+}
+
+func setupLog() {
+	level := slog.Level(1)
+	err := level.UnmarshalText([]byte(os.Getenv("LOG_LEVEL")))
+	if err != nil {
+		return
+	}
+	handler := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+	slog.SetDefault(handler)
 }
