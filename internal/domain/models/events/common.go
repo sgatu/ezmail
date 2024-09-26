@@ -16,7 +16,7 @@ type EventBus interface {
 	Push(ctx context.Context, e Event, queue string) error
 }
 type BusReader interface {
-	Read(ctx context.Context, limit int32) error
+	Read(ctx context.Context, limit int32) ([]Event, error)
 	Commit(ctx context.Context, commitInfo interface{}) error
 }
 type TypedEvent struct {

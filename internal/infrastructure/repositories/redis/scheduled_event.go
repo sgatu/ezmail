@@ -13,6 +13,12 @@ type RedisScheduledEventRepository struct {
 	conn *redis.Client
 }
 
+func NewRedisScheduledEventRepository(client *redis.Client) *RedisScheduledEventRepository {
+	return &RedisScheduledEventRepository{
+		conn: client,
+	}
+}
+
 const (
 	redisKey = "q_scheduled_events"
 )

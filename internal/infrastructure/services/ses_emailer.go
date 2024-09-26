@@ -19,6 +19,13 @@ type SesEmailer struct {
 	snowflakeNode *snowflake.Node
 }
 
+func NewSesEmailer(sesClient *sesv2.Client, snowflakeNode *snowflake.Node) *SesEmailer {
+	return &SesEmailer{
+		awsSesClient:  sesClient,
+		snowflakeNode: snowflakeNode,
+	}
+}
+
 func (se *SesEmailer) SendEmail(ctx context.Context, email *services.PreparedEmail) error {
 	var toAddresses []string
 	err := json.Unmarshal([]byte(email.To), &toAddresses)

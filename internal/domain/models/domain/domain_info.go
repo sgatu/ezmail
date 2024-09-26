@@ -50,7 +50,7 @@ func ErrDomainInfoNotFound(identifier string) error {
 type DnsRecordStatus int
 
 const (
-	DNS_RECORD_STATUS_PENDING = iota
+	DNS_RECORD_STATUS_PENDING DnsRecordStatus = iota
 	DNS_RECORD_STATUS_VERIFIED
 	DNS_RECORD_STATUS_FAILED
 )

@@ -2,37 +2,37 @@ package worker
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"time"
 
-	"github.com/sgatu/ezmail/internal/domain/models/events"
-	"github.com/sgatu/ezmail/internal/domain/services"
 	"github.com/sgatu/ezmail/internal/worker/processors"
 )
 
 type executor struct {
-	emailStoreService   services.EmailStoreService
-	emailerService      services.Emailer
-	scheduledEventsRepo events.ScheduledEventRepository
-	busReader           events.BusReader
-	processors          []processors.Processor
-	running             bool
+	runningCtx *processors.RunningContext
+	processors map[string][]processors.Processor
+	running    bool
 }
 
 func NewExecutor(
-	emailStoreService services.EmailStoreService,
-	emailerService services.Emailer,
-	schedulerEventsRepo events.ScheduledEventRepository,
-	busReader events.BusReader,
-	processorsList ...func() processors.Processor,
+	runningCtx *processors.RunningContext,
+	processorsList ...func(rCtx *processors.RunningContext) ([]string, processors.Processor),
 ) *executor {
 	e := executor{
-		emailStoreService:   emailStoreService,
-		emailerService:      emailerService,
-		scheduledEventsRepo: schedulerEventsRepo,
-		processors:          make([]processors.Processor, len(processorsList)),
+		runningCtx: runningCtx,
+		processors: make(map[string][]processors.Processor),
+		running:    true,
 	}
 	for _, pDef := range processorsList {
-		proc := pDef()
-		e.processors = append(e.processors, proc)
+		types, proc := pDef(e.runningCtx)
+		for _, t := range types {
+			if val, ok := e.processors[t]; ok {
+				e.processors[t] = append(val, proc)
+			} else {
+				e.processors[t] = append(make([]processors.Processor, 0), proc)
+			}
+		}
 	}
 	return &e
 }
@@ -41,7 +41,25 @@ func (e *executor) Run() {
 	e.running = true
 	go func() {
 		for e.running {
-			e.busReader.Read(context.Background(), 1)
+			time.Sleep(50 * time.Millisecond)
+			ctx := context.Background()
+			msgs, err := e.runningCtx.BusReader.Read(ctx, 1)
+			if err != nil {
+				slog.Warn(fmt.Errorf("could not retrieve messages from queue due to %w", err).Error())
+				continue
+			}
+			if len(msgs) == 0 {
+				continue
+			}
+			event := msgs[0]
+			processors, ok := e.processors[event.GetType()]
+			if !ok {
+				continue
+			}
+			for _, proc := range processors {
+				_ = proc.Process(ctx, event) // ignore error for now, processor should deal with it and at least log it
+			}
+
 		}
 	}()
 }

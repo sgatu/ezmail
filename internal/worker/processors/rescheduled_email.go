@@ -10,9 +10,9 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/services"
 )
 
-func InitNewEmailProcessor() func(rCtx *RunningContext) ([]string, Processor) {
+func InitRescheduledEmailProcessor() func(rCtx *RunningContext) ([]string, Processor) {
 	return func(rCtx *RunningContext) ([]string, Processor) {
-		return []string{events.EVENT_TYPE_NEW_EMAIL}, &NewEmailProcessor{
+		return []string{events.EVENT_TYPE_RESCHEDULED_EMAIL}, &RescheduledEmailProcessor{
 			eventBus:          rCtx.EventBus,
 			emailStoreService: rCtx.EmailStoreService,
 			emailer:           rCtx.EmailerService,
@@ -22,7 +22,7 @@ func InitNewEmailProcessor() func(rCtx *RunningContext) ([]string, Processor) {
 	}
 }
 
-type NewEmailProcessor struct {
+type RescheduledEmailProcessor struct {
 	eventBus          events.EventBus
 	emailStoreService services.EmailStoreService
 	emailer           services.Emailer
@@ -30,23 +30,24 @@ type NewEmailProcessor struct {
 	schEvtRepo        events.ScheduledEventRepository
 }
 
-func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) error {
-	evtP, ok := evt.(*events.NewEmailEvent)
+func (rep *RescheduledEmailProcessor) Process(ctx context.Context, evt events.Event) error {
+	evtP, ok := evt.(*events.RescheduledEmailEvent)
 	if !ok {
-		slog.Warn(fmt.Sprintf("Invalid event received by NewEmailProcessor. Type = %s", evt.GetType()))
+		slog.Warn(fmt.Sprintf("Invalid event received by RescheduledEmailProcessor. Type = %s", evt.GetType()))
 		return nil
 	}
-	email, err := nep.emailStoreService.PrepareEmail(ctx, evtP.Id)
+	email, err := rep.emailStoreService.PrepareEmail(ctx, evtP.Id)
 	if err != nil {
 		return err
 	}
-	err = nep.emailer.SendEmail(ctx, email)
+	err = rep.emailer.SendEmail(ctx, email)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id))
-		if nep.rc != nil {
-			nextRun := time.Now().Add(time.Duration(nep.rc.RetrySec) * time.Second)
-			rescheduledEvent := events.CreateRescheduledEmailEvent(email.Id, nextRun)
-			errReschedule := nep.schEvtRepo.Push(ctx, rescheduledEvent.When, rescheduledEvent)
+		slog.Error(fmt.Sprintf("Error sending rescheduled email with id %d", email.Id))
+		if rep.rc != nil && evtP.Tries <= rep.rc.Retries {
+			nextRun := time.Now().Add(time.Duration(rep.rc.RetrySec) * time.Second)
+			evtP.When = nextRun
+			evtP.Tries += 1
+			errReschedule := rep.schEvtRepo.Push(ctx, nextRun, evtP)
 			if errReschedule != nil {
 				err = fmt.Errorf("could not reschedule email due do: %w, original error %w", errReschedule, err)
 			}
