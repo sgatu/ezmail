@@ -31,15 +31,18 @@ type NewEmailProcessor struct {
 }
 
 func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) error {
+	slog.Info("Processing new email")
 	evtP, ok := evt.(*events.NewEmailEvent)
 	if !ok {
 		slog.Warn(fmt.Sprintf("Invalid event received by NewEmailProcessor. Type = %s", evt.GetType()))
 		return nil
 	}
+	slog.Info("Preparing email")
 	email, err := nep.emailStoreService.PrepareEmail(ctx, evtP.Id)
 	if err != nil {
 		return err
 	}
+	slog.Info("Sending email")
 	err = nep.emailer.SendEmail(ctx, email)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id))
@@ -52,6 +55,10 @@ func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) err
 			}
 		}
 		return err
+	}
+	err = nep.emailStoreService.MarkEmailAsSent(ctx, email.Id)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d", email.Id))
 	}
 	return nil
 }

@@ -2,7 +2,7 @@
 @authorization = Bearer JprYgBBKYLlHcueu8v6ITRx9S
 @domain_id = 1835405793565450240
 @template_id = 1835007224123596800
-@email_id = 1832899994003808256
+@email_id = 1840088219050942464
 
 # Get domains endpoint
 GET {{host}}/domain HTTP/1.1
@@ -62,3 +62,27 @@ Authorization: {{authorization}}
 # Get email
 GET {{host}}/email/{{email_id}} HTTP/1.1
 Authorization: {{authorization}}
+
+###
+
+# Prepare Email
+GET {{host}}/email/{{email_id}}/prepared HTTP/1.1
+Authorization: {{authorization}}
+
+###
+
+# Send email
+POST {{host}}/email HTTP/1.1
+Authorization: {{authorization}}
+Content-Type: application/json
+
+{
+    "context": {
+      "FIRST_NAME": "John",
+      "COMPANY_NAME": "Doe Factory"
+    },
+    "reply_to": "The responder <responder@domain.tld>",
+    "to": ["Receiver <receiver@gmail.com>"],
+    "from": "The big bad wolf info <info@domain.tld>",
+	"template_id": "{{template_id}}"
+}

@@ -14,6 +14,15 @@ type RedisEventsReader struct {
 	autocommit bool
 }
 
+func NewRedisEventsReader(conn *redis.Client, stream string, readerName string, autocommit bool) *RedisEventsReader {
+	return &RedisEventsReader{
+		conn:       conn,
+		stream:     stream,
+		name:       readerName,
+		autocommit: autocommit,
+	}
+}
+
 func (re *RedisEventsReader) getCommitKey() string {
 	return "ci_" + re.stream + "_" + re.name
 }
@@ -27,7 +36,7 @@ func (re *RedisEventsReader) getLastMessageReadId(ctx context.Context) string {
 	return data
 }
 
-func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.Event, string, error) {
+func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.EventWrapper, error) {
 	lastId := re.getLastMessageReadId(ctx)
 	result := re.conn.XRead(ctx, &redis.XReadArgs{
 		Streams: []string{re.stream, lastId},
@@ -37,11 +46,11 @@ func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.Ev
 
 	resultData, err := result.Result()
 	if err != nil {
-		return nil, lastId, err
+		return nil, err
 	}
-	eventsList := make([]events.Event, 0)
+	eventsList := make([]events.EventWrapper, 0)
 	if len(resultData) == 0 {
-		return eventsList, lastId, nil
+		return eventsList, nil
 	}
 	streamData := resultData[0]
 	for _, msg := range streamData.Messages {
@@ -50,15 +59,15 @@ func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.Ev
 		if ok {
 			typedEvent, err := events.RetrieveTypedEvent([]byte(eventData.(string)))
 			if err != nil {
-				return nil, "", err
+				return nil, err
 			}
-			eventsList = append(eventsList, typedEvent)
+			eventsList = append(eventsList, events.EventWrapper{Event: typedEvent, Id: msg.ID})
 		}
 	}
 	if re.autocommit {
 		re.Commit(ctx, lastId)
 	}
-	return eventsList, lastId, nil
+	return eventsList, nil
 }
 
 func (re *RedisEventsReader) Commit(ctx context.Context, commitInfo interface{}) error {

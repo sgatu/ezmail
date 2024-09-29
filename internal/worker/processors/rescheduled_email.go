@@ -54,5 +54,10 @@ func (rep *RescheduledEmailProcessor) Process(ctx context.Context, evt events.Ev
 		}
 		return err
 	}
+	err = rep.emailStoreService.MarkEmailAsSent(ctx, evtP.Id)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d", email.Id))
+	}
+
 	return nil
 }

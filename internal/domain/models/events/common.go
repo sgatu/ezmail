@@ -13,14 +13,18 @@ type Event interface {
 }
 
 type EventBus interface {
-	Push(ctx context.Context, e Event, queue string) error
+	Push(ctx context.Context, e Event) error
 }
 type BusReader interface {
-	Read(ctx context.Context, limit int32) ([]Event, error)
+	Read(ctx context.Context, limit int32) ([]EventWrapper, error)
 	Commit(ctx context.Context, commitInfo interface{}) error
 }
 type TypedEvent struct {
 	Type string `json:"type"`
+}
+type EventWrapper struct {
+	Event Event
+	Id    string
 }
 
 const (

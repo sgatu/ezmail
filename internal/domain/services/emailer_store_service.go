@@ -12,6 +12,7 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/email"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
+	"github.com/uptrace/bun"
 )
 
 type PreparedEmail struct {
@@ -33,6 +34,7 @@ type EmailStoreService interface {
 	CreateEmail(ctx context.Context, createEmail *email.CreateNewEmailRequest) error
 	GetById(ctx context.Context, id int64) (*email.Email, error)
 	PrepareEmail(ctx context.Context, id int64) (*PreparedEmail, error)
+	MarkEmailAsSent(ctx context.Context, id int64) error
 }
 
 type DefaultEmailStoreService struct {
@@ -61,6 +63,15 @@ func NewDefaultEmailStoreService(
 
 func (dEmailer *DefaultEmailStoreService) GetById(ctx context.Context, id int64) (*email.Email, error) {
 	return dEmailer.emailRepository.GetById(ctx, id)
+}
+
+func (dEmailer *DefaultEmailStoreService) MarkEmailAsSent(ctx context.Context, id int64) error {
+	email, err := dEmailer.emailRepository.GetById(ctx, id)
+	if err != nil {
+		return err
+	}
+	email.ProcessedDate = bun.NullTime{Time: time.Now().UTC()}
+	return dEmailer.emailRepository.Save(ctx, email)
 }
 
 func (dEmailer *DefaultEmailStoreService) PrepareEmail(ctx context.Context, id int64) (*PreparedEmail, error) {
@@ -173,10 +184,7 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	if err != nil {
 		return err
 	}
-	dEmailer.eventBus.Push(ctx, &events.NewEmailEvent{
-		When: time.Now().UTC(),
-		Id:   emailEntity.Id,
-	}, "emails")
+	dEmailer.eventBus.Push(ctx, events.CreateNewEmailEvent(emailEntity.Id))
 	return nil
 }
 

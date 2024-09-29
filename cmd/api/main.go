@@ -29,7 +29,8 @@ func main() {
 	}
 	db := bun.NewDB(sqldb, mysqldialect.New())
 	defer db.Close()
-	appContext := internal_http.SetupAppContext(db)
+	appContext, cleanup := internal_http.SetupAppContext(db)
+	defer cleanup()
 	handlers.SetupMiddlewares(server, appContext)
 	slog.Debug("Setting up routes")
 	handlers.SetupRoutes(server, appContext)

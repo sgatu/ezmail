@@ -3,6 +3,10 @@ package main
 import (
 	"database/sql"
 	"os"
+	"os/signal"
+	"syscall"
+
+	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/joho/godotenv"
 	"github.com/sgatu/ezmail/internal/worker"
@@ -24,14 +28,23 @@ func main() {
 	db := bun.NewDB(sqldb, mysqldialect.New())
 	defer db.Close()
 
-	runningContext, err := processors.SetupRunningContext()
+	runningContext, cleanup, err := processors.SetupRunningContext(db)
 	if err != nil {
 		panic(err)
 	}
-	e := worker.NewExecutor(
+	defer cleanup()
+	e, wg := worker.NewExecutor(
 		runningContext,
 		processors.InitNewEmailProcessor(),
 		processors.InitRescheduledEmailProcessor(),
 	)
 	e.Run()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		e.Stop()
+	}()
+	wg.Wait()
 }

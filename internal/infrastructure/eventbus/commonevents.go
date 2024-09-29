@@ -9,17 +9,21 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/events"
 )
 
-type CommonEventsEventBus struct {
+type RedisEventBus struct {
 	redisConnection *redis.Client
+	eventsTopic     string
+	maxLen          int64
 }
 
-func NewCommonEventsEventBus(redisConn *redis.Client) *CommonEventsEventBus {
-	return &CommonEventsEventBus{
+func NewRedisEventBus(redisConn *redis.Client, maxLen int64, eventsTopic string) *RedisEventBus {
+	return &RedisEventBus{
 		redisConnection: redisConn,
+		maxLen:          maxLen,
+		eventsTopic:     eventsTopic,
 	}
 }
 
-func (ce *CommonEventsEventBus) Push(ctx context.Context, event events.Event, queue string) error {
+func (ce *RedisEventBus) Push(ctx context.Context, event events.Event) error {
 	eventData, err := event.Serialize()
 	if err != nil {
 
@@ -27,16 +31,13 @@ func (ce *CommonEventsEventBus) Push(ctx context.Context, event events.Event, qu
 		return err
 	}
 	result := ce.redisConnection.XAdd(ctx, &redis.XAddArgs{
-		Stream: queue,
+		Stream: ce.eventsTopic,
 		Values: []string{"payload", eventData},
+		MaxLen: ce.maxLen,
 	})
 	if result.Err() != nil {
-		slog.Warn(fmt.Sprintf("Could not send event to queue. Type = %s, Err = %s, Queue = %s", event.GetType(), err, queue))
+		slog.Warn(fmt.Sprintf("Could not send event to queue. Type = %s, Err = %s, Queue = %s", event.GetType(), err, ce.eventsTopic))
 		return result.Err()
 	}
 	return nil
-}
-
-type CommonEventsBusReader struct {
-	redisConnection *redis.Client
 }

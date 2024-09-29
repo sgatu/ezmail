@@ -42,12 +42,12 @@ type Email struct {
 }
 
 type CreateNewEmailRequest struct {
-	Context    map[string]string
-	ReplyTo    *string
-	BCC        []string
-	From       string
-	To         []string
-	TemplateId int64 `json:",string"`
+	Context    map[string]string `json:"context"`
+	ReplyTo    *string           `json:"reply_to"`
+	BCC        []string          `json:"bcc"`
+	From       string            `json:"from"`
+	To         []string          `json:"to"`
+	TemplateId int64             `json:"template_id,string"`
 }
 
 type CreateTemplateRequest struct {

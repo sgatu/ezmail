@@ -27,7 +27,7 @@ type AppContext struct {
 	IdentityManager      services.IdentityManager
 	SnowflakeNode        *snowflake.Node
 	TemplateRepository   email.TemplateRepository
-	CommonEventsBus      events.EventBus
+	EventsBus            events.EventBus
 }
 
 func (ac *AppContext) ValidateToken(ctx context.Context, token string) error {
@@ -37,7 +37,7 @@ func (ac *AppContext) ValidateToken(ctx context.Context, token string) error {
 	return nil
 }
 
-func SetupAppContext(db *bun.DB) *AppContext {
+func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	nodeIdStr := os.Getenv("NODE_ID")
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
@@ -65,15 +65,26 @@ func SetupAppContext(db *bun.DB) *AppContext {
 		Password: "",
 		DB:       0,
 	})
-	commonEventBus := eventbus.NewCommonEventsEventBus(redisCli)
-
-	emailService := services.NewDefaultEmailStoreService(emailRepository, templateRepository, domainInfoRepository, commonEventBus, snowflakeNode)
-	return &AppContext{
-		DomainInfoRepository: domainInfoRepository,
-		IdentityManager:      infra_services.NewSESIdentityManager(domainInfoRepository, awsConfig, snowflakeNode),
-		SnowflakeNode:        snowflakeNode,
-		EmailStoreService:    emailService,
-		TemplateRepository:   templateRepository,
-		CommonEventsBus:      commonEventBus,
+	maxLenEventsStr := os.Getenv("REDIS_EVENTS_MAX_LEN")
+	maxLenEvents, err := strconv.ParseInt(maxLenEventsStr, 10, 64)
+	if err != nil {
+		slog.Warn("Could not load redis max events, defaulting to 2500")
+		maxLenEvents = 2500
 	}
+	eventsTopic := os.Getenv("EVENTS_TOPIC")
+	if eventsTopic == "" {
+		eventsTopic = "queue:email_events"
+	}
+	redisEventBus := eventbus.NewRedisEventBus(redisCli, maxLenEvents, eventsTopic)
+	emailService := services.NewDefaultEmailStoreService(emailRepository, templateRepository, domainInfoRepository, redisEventBus, snowflakeNode)
+	return &AppContext{
+			DomainInfoRepository: domainInfoRepository,
+			IdentityManager:      infra_services.NewSESIdentityManager(domainInfoRepository, awsConfig, snowflakeNode),
+			SnowflakeNode:        snowflakeNode,
+			EmailStoreService:    emailService,
+			TemplateRepository:   templateRepository,
+			EventsBus:            redisEventBus,
+		}, func() {
+			redisCli.Close()
+		}
 }
