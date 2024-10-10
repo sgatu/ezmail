@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -33,18 +34,23 @@ func main() {
 		panic(err)
 	}
 	defer cleanup()
-	e, wg := worker.NewExecutor(
+	wg := &sync.WaitGroup{}
+	e := worker.NewExecutor(
 		runningContext,
+		wg,
 		processors.InitNewEmailProcessor(),
 		processors.InitRescheduledEmailProcessor(),
 	)
+	s := worker.NewScheduler(runningContext.ScheduledEventsRepo, wg)
 	e.Run()
+	s.Run()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		e.Stop()
+		s.Stop()
 	}()
 	wg.Wait()
 }

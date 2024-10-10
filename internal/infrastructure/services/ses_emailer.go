@@ -45,7 +45,6 @@ func (se *SesEmailer) SendEmail(ctx context.Context, email *services.PreparedEma
 	if email.ReplyTo != "" {
 		replyTo = []string{email.ReplyTo}
 	}
-	fmt.Printf("Before sending email: \nTo: %+v\nFrom: %+v\nBcc: %+v\n", toAddresses, email.From, bccAddresses)
 	result, err := se.awsSesClient.SendEmail(ctx, &sesv2.SendEmailInput{
 		ReplyToAddresses: replyTo,
 		FromEmailAddress: &email.From,

@@ -19,14 +19,14 @@ type executor struct {
 
 func NewExecutor(
 	runningCtx *processors.RunningContext,
+	wg *sync.WaitGroup,
 	processorsList ...func(rCtx *processors.RunningContext) ([]string, processors.Processor),
-) (*executor, *sync.WaitGroup) {
-	var wg sync.WaitGroup
+) *executor {
 	e := executor{
 		runningCtx: runningCtx,
 		processors: make(map[string][]processors.Processor),
 		running:    true,
-		wg:         &wg,
+		wg:         wg,
 	}
 	for _, pDef := range processorsList {
 		types, proc := pDef(e.runningCtx)
@@ -38,7 +38,7 @@ func NewExecutor(
 			}
 		}
 	}
-	return &e, &wg
+	return &e
 }
 
 func (e *executor) Run() {
