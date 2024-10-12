@@ -1,10 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/urfave/negroni"
 )
 
 func NewServer() *chi.Mux {
@@ -15,6 +18,26 @@ func NewServer() *chi.Mux {
 			h.ServeHTTP(w, r)
 		})
 	})
-	router.Use(middleware.Logger)
+	router.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			nw := negroni.NewResponseWriter(w)
+			start := time.Now()
+			h.ServeHTTP(nw, r)
+			diff := time.Since(start)
+			proto := "http"
+			if r.TLS != nil {
+				proto = "https"
+			}
+			status := nw.Status()
+			if status > 300 {
+				slog.Info(fmt.Sprintf("%s %s://%s%s", r.Method, proto, r.Host, r.RequestURI),
+					"From", r.RemoteAddr, "Status", nw.Status(), "Time", fmt.Sprintf("%dms", diff.Milliseconds()))
+			} else {
+				slog.Debug(fmt.Sprintf("%s %s://%s%s", r.Method, proto, r.Host, r.RequestURI),
+					"From", r.RemoteAddr, "Status", nw.Status(), "Time", fmt.Sprintf("%dms", diff.Milliseconds()))
+			}
+		})
+	})
+	// router.Use(middleware.Logger)
 	return router
 }

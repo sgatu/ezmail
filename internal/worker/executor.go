@@ -53,7 +53,7 @@ func (e *executor) Run() {
 				cancel()
 			}
 			if anyProcessed {
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(10040 * time.Millisecond)
 			} else {
 				slog.Debug("Looking for messages, none in last loop, 5s sleep")
 				time.Sleep(5000 * time.Millisecond)
@@ -75,16 +75,21 @@ func (e *executor) Run() {
 			}
 			anyProcessed = true
 			err = nil
-			var lastId *string = nil
+			lastId := ""
 			for _, proc := range processors {
 				err = proc.Process(ctx, eventWrapper.Event)
 				if err != nil {
+					slog.Warn(fmt.Sprintf("Failed to process event %s/%s due to %s", eventWrapper.Id, eventWrapper.Event.GetType(), err.Error()))
 					break
 				}
-				lastId = &eventWrapper.Id
+				lastId = eventWrapper.Id
 			}
-			if lastId != nil {
-				e.runningCtx.BusReader.Commit(ctx, &lastId)
+			if len(lastId) != 0 {
+				err = e.runningCtx.BusReader.Commit(ctx, lastId)
+				if err != nil {
+					slog.Error("Could not commit, closing executor")
+					e.running = false
+				}
 			} else {
 				anyProcessed = false
 			}

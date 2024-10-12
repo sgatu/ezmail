@@ -68,19 +68,21 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	emailStoreRepo := mysql.NewMysqlEmailRepository(db)
 	templateRepo := mysql.NewMysqlTemplateRepository(db)
 	domainRepo := mysql.NewMysqlDomainInfoRepository(db)
+	scheduledEvRepo := redis.NewRedisScheduledEventRepository(redisCli)
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		panic(err)
 	}
 	return &RunningContext{
 			EventBus:            eventBus,
-			ScheduledEventsRepo: redis.NewRedisScheduledEventRepository(redisCli),
+			ScheduledEventsRepo: scheduledEvRepo,
 			EmailStoreService: services.NewDefaultEmailStoreService(
 				emailStoreRepo,
 				templateRepo,
 				domainRepo,
 				eventBus,
 				snowflakeNode,
+				scheduledEvRepo,
 			),
 			EmailerService: infra_services.NewSesEmailer(sesv2.NewFromConfig(awsConfig), snowflakeNode),
 			Rc:             nil,

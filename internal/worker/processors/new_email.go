@@ -58,7 +58,7 @@ func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) err
 	}
 	err = nep.emailStoreService.MarkEmailAsSent(ctx, email.Id)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d", email.Id))
+		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d, err %s", email.Id, err.Error()))
 	}
 	return nil
 }

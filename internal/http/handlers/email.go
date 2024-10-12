@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -82,7 +81,6 @@ func (eh *emailHandler) SendEmail(w http.ResponseWriter, r *http.Request) {
 	var createEmailRequest email.CreateNewEmailRequest
 	err := json.NewDecoder(r.Body).Decode(&createEmailRequest)
 	if err != nil {
-		fmt.Printf("%+v\n", err)
 		common.ErrorResponse(common.InvalidRequestBodyError(), w)
 		return
 	}

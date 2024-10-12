@@ -2,6 +2,8 @@ package redis
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -28,6 +30,7 @@ func (repo *RedisScheduledEventRepository) Push(ctx context.Context, when time.T
 	if err != nil {
 		return err
 	}
+	slog.Info(fmt.Sprintf("Scheduling evt %s for %d", evt.GetType(), when.Unix()))
 	result := repo.conn.ZAdd(ctx, redisKey, redis.Z{Score: float64(when.Unix()), Member: evtData})
 	if result.Err() != nil {
 		return result.Err()
@@ -61,9 +64,10 @@ func (repo *RedisScheduledEventRepository) RemoveNext(ctx context.Context) error
 func getNextOne(ctx context.Context, conn *redis.Client) (*string, error) {
 	result := conn.ZRangeByScore(ctx, redisKey, &redis.ZRangeBy{
 		Min:   "-inf",
-		Max:   strconv.FormatInt(time.Now().Unix(), 10),
+		Max:   strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Count: 1,
 	})
+	slog.Info(fmt.Sprintf("Checking next evt at %s", strconv.FormatInt(time.Now().UTC().Unix(), 10)))
 	if result.Err() != nil {
 		return nil, result.Err()
 	}

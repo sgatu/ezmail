@@ -41,7 +41,7 @@ func main() {
 		processors.InitNewEmailProcessor(),
 		processors.InitRescheduledEmailProcessor(),
 	)
-	s := worker.NewScheduler(runningContext.ScheduledEventsRepo, wg)
+	s := worker.NewScheduler(runningContext.ScheduledEventsRepo, runningContext.EventBus, wg)
 	e.Run()
 	s.Run()
 

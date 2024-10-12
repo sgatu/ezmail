@@ -2,6 +2,8 @@ package eventbus
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
@@ -31,6 +33,8 @@ func (re *RedisEventsReader) getLastMessageReadId(ctx context.Context) string {
 	result := re.conn.Get(ctx, re.getCommitKey())
 	data, err := result.Result()
 	if err != nil {
+		slog.Info(fmt.Sprintf("9999999999 %s", err.Error()))
+
 		return "0"
 	}
 	return data
@@ -38,6 +42,7 @@ func (re *RedisEventsReader) getLastMessageReadId(ctx context.Context) string {
 
 func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.EventWrapper, error) {
 	lastId := re.getLastMessageReadId(ctx)
+	slog.Info(fmt.Sprintf("Reading evts from %s", lastId))
 	result := re.conn.XRead(ctx, &redis.XReadArgs{
 		Streams: []string{re.stream, lastId},
 		Count:   int64(limit),
@@ -72,5 +77,8 @@ func (re *RedisEventsReader) Read(ctx context.Context, limit int32) ([]events.Ev
 
 func (re *RedisEventsReader) Commit(ctx context.Context, commitInfo interface{}) error {
 	result := re.conn.Set(ctx, re.getCommitKey(), commitInfo, 0)
+	if result.Err() != nil {
+		slog.Info(fmt.Sprintf("3333333333 %s", result.Err().Error()))
+	}
 	return result.Err()
 }

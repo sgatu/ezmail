@@ -29,6 +29,7 @@ type CompactTemplate struct {
 type Email struct {
 	bun.BaseModel `bun:"table:email,alias:em"`
 	Created       time.Time `bun:",notnull"`
+	ExpectedSent  time.Time `bun:"expected_sent,notnull"`
 	context       map[string]string
 	ProcessedDate bun.NullTime `bun:",nullzero"`
 	From          string       `bun:",notnull"`
@@ -42,12 +43,13 @@ type Email struct {
 }
 
 type CreateNewEmailRequest struct {
-	Context    map[string]string `json:"context"`
-	ReplyTo    *string           `json:"reply_to"`
-	BCC        []string          `json:"bcc"`
-	From       string            `json:"from"`
-	To         []string          `json:"to"`
-	TemplateId int64             `json:"template_id,string"`
+	Context    map[string]string     `json:"context"`
+	ReplyTo    *models.EmailAddress  `json:"reply_to"`
+	When       *models.DateTime      `json:"when"`
+	BCC        []models.EmailAddress `json:"bcc"`
+	From       models.EmailAddress   `json:"from"`
+	To         []models.EmailAddress `json:"to"`
+	TemplateId int64                 `json:"template_id,string"`
 }
 
 type CreateTemplateRequest struct {
@@ -72,6 +74,7 @@ func NewEmail(
 	replyTo string,
 	bcc string,
 	context map[string]string,
+	expectedSent *models.DateTime,
 ) (*Email, error) {
 	em := &Email{
 		Created:    time.Now().UTC(),
@@ -83,6 +86,10 @@ func NewEmail(
 		TemplateId: templateId,
 		DomainId:   domainId,
 		Id:         sNode.Generate().Int64(),
+	}
+	em.ExpectedSent = time.Now().UTC()
+	if expectedSent != nil {
+		em.ExpectedSent = time.Time(*expectedSent)
 	}
 	marshalResult, err := json.Marshal(context)
 	if err != nil {

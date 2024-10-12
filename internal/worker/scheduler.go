@@ -17,10 +17,11 @@ type Scheduler struct {
 	running   bool
 }
 
-func NewScheduler(repo events.ScheduledEventRepository, wg *sync.WaitGroup) *Scheduler {
+func NewScheduler(repo events.ScheduledEventRepository, evBus events.EventBus, wg *sync.WaitGroup) *Scheduler {
 	return &Scheduler{
 		schedRepo: repo,
 		running:   false,
+		evBus:     evBus,
 		wg:        wg,
 	}
 }
@@ -35,13 +36,19 @@ func (sched *Scheduler) Run() {
 			if cancel != nil {
 				cancel()
 			}
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(5000 * time.Millisecond)
 			ctx, cancel = context.WithTimeout(context.Background(), 1000*time.Millisecond)
 			next, err := sched.schedRepo.GetNext(ctx)
 			if err != nil {
 				slog.Warn(fmt.Errorf("could not get next scheduled event due to %w", err).Error())
 				continue
 			}
+			if next == nil {
+				slog.Info(fmt.Sprintf("no next event scheduled"))
+
+				continue
+			}
+			slog.Info(fmt.Sprintf("Found scheduled event %s, sending to queue", next.GetType()))
 			sched.evBus.Push(ctx, next)
 			sched.schedRepo.RemoveNext(ctx)
 		}
@@ -53,5 +60,6 @@ func (sched *Scheduler) Run() {
 }
 
 func (sched *Scheduler) Stop() {
+	slog.Info("Shutting down scheduler...")
 	sched.running = false
 }

@@ -10,13 +10,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bwmarrin/snowflake"
-	"github.com/redis/go-redis/v9"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/email"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	"github.com/sgatu/ezmail/internal/infrastructure/eventbus"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
+	"github.com/sgatu/ezmail/internal/infrastructure/repositories/redis"
 	infra_services "github.com/sgatu/ezmail/internal/infrastructure/services"
 	"github.com/uptrace/bun"
 )
@@ -76,7 +76,15 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 		eventsTopic = "queue:email_events"
 	}
 	redisEventBus := eventbus.NewRedisEventBus(redisCli, maxLenEvents, eventsTopic)
-	emailService := services.NewDefaultEmailStoreService(emailRepository, templateRepository, domainInfoRepository, redisEventBus, snowflakeNode)
+	scheduledEvRepo := redis.NewRedisScheduledEventRepository(redisCli)
+	emailService := services.NewDefaultEmailStoreService(
+		emailRepository,
+		templateRepository,
+		domainInfoRepository,
+		redisEventBus,
+		snowflakeNode,
+		scheduledEvRepo,
+	)
 	return &AppContext{
 			DomainInfoRepository: domainInfoRepository,
 			IdentityManager:      infra_services.NewSESIdentityManager(domainInfoRepository, awsConfig, snowflakeNode),

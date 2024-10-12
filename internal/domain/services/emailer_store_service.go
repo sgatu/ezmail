@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/mail"
 	"strings"
 	"time"
 
@@ -42,6 +41,7 @@ type DefaultEmailStoreService struct {
 	templateRepository   email.TemplateRepository
 	domainInfoRepository domain.DomainInfoRepository
 	eventBus             events.EventBus
+	scheduledEvRepo      events.ScheduledEventRepository
 	snowFlakeNode        *snowflake.Node
 }
 
@@ -51,6 +51,7 @@ func NewDefaultEmailStoreService(
 	domainInfoRepository domain.DomainInfoRepository,
 	eventBus events.EventBus,
 	snowFlakeNode *snowflake.Node,
+	scheduledEvRepo events.ScheduledEventRepository,
 ) EmailStoreService {
 	return &DefaultEmailStoreService{
 		emailRepository:      emailRepository,
@@ -58,6 +59,7 @@ func NewDefaultEmailStoreService(
 		domainInfoRepository: domainInfoRepository,
 		eventBus:             eventBus,
 		snowFlakeNode:        snowFlakeNode,
+		scheduledEvRepo:      scheduledEvRepo,
 	}
 }
 
@@ -123,22 +125,15 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	if err != nil {
 		return err
 	}
-	addr, err := mail.ParseAddress(createEmail.From)
-	if err != nil {
-		return err
-	}
-	addrParts := strings.SplitN(addr.Address, "@", 2)
+	addrParts := strings.SplitN(createEmail.From.ParsedEmail.Address, "@", 2)
 	domainName := addrParts[1]
 
-	if createEmail.To == nil {
+	if createEmail.To == nil || len(createEmail.To) == 0 {
 		return fmt.Errorf("no email destinataries")
 	}
-
+	toEmailsS := make([]string, 0, len(createEmail.To))
 	for _, to := range createEmail.To {
-		_, err := mail.ParseAddress(to)
-		if err != nil {
-			return err
-		}
+		toEmailsS = append(toEmailsS, to.StringEmail)
 	}
 
 	domain, err := dEmailer.domainInfoRepository.GetDomainInfoByName(ctx, domainName)
@@ -150,15 +145,15 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 		return fmt.Errorf("domain not validated")
 	}
 
-	toEmails, err := json.Marshal(createEmail.To)
+	toEmails, err := json.Marshal(toEmailsS)
 	if err != nil {
 		return err
+	}
+	replyToEmail := ""
+	if createEmail.ReplyTo != nil {
+		replyToEmail = createEmail.ReplyTo.StringEmail
 	}
 
-	replyToEmail, err := getReplyTo(createEmail)
-	if err != nil {
-		return err
-	}
 	bccEmails, err := getBCC(createEmail)
 	if err != nil {
 		return err
@@ -171,11 +166,12 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 		dEmailer.snowFlakeNode,
 		domain.Id,
 		createEmail.TemplateId,
-		createEmail.From,
+		createEmail.From.StringEmail,
 		string(toEmails),
 		replyToEmail,
 		string(bccEmails),
 		contextInfo,
+		createEmail.When,
 	)
 	if err != nil {
 		return err
@@ -184,33 +180,24 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	if err != nil {
 		return err
 	}
-	dEmailer.eventBus.Push(ctx, events.CreateNewEmailEvent(emailEntity.Id))
+	evt := events.CreateNewEmailEvent(emailEntity.Id)
+	if createEmail.When != nil {
+		dEmailer.scheduledEvRepo.Push(ctx, time.Time(*createEmail.When), evt)
+	} else {
+		dEmailer.eventBus.Push(ctx, evt)
+	}
 	return nil
 }
 
-func getReplyTo(createEmail *email.CreateNewEmailRequest) (string, error) {
-	replyToEmail := ""
-	if createEmail.ReplyTo != nil && len(*createEmail.ReplyTo) > 0 {
-		_, err := mail.ParseAddress(*createEmail.ReplyTo)
-		if err != nil {
-			return "", err
-		}
-		replyToEmail = *createEmail.ReplyTo
-	}
-	return replyToEmail, nil
-}
-
 func getBCC(createEmail *email.CreateNewEmailRequest) ([]byte, error) {
-	if createEmail.BCC == nil {
+	if createEmail.BCC == nil || len(createEmail.BCC) == 0 {
 		return []byte("[]"), nil
 	}
+	bccS := make([]string, 0, len(createEmail.BCC))
 	for _, bcc := range createEmail.BCC {
-		_, err := mail.ParseAddress(bcc)
-		if err != nil {
-			return nil, err
-		}
+		bccS = append(bccS, bcc.StringEmail)
 	}
-	bccEmails, err := json.Marshal(createEmail.BCC)
+	bccEmails, err := json.Marshal(bccS)
 	if err != nil {
 		return nil, err
 	}
