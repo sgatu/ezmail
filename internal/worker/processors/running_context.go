@@ -21,8 +21,8 @@ import (
 )
 
 type RescheduleConfig struct {
-	Retries  int8
-	RetrySec int32
+	Retries     int8
+	RetryTimeMs int64
 }
 type RunningContext struct {
 	EventBus            events.EventBus
@@ -34,7 +34,7 @@ type RunningContext struct {
 }
 
 func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
-	mainBusRedis := os.Getenv("COMMON_BUS_REDIS")
+	mainBusRedis := os.Getenv("REDIS")
 	if mainBusRedis == "" {
 		mainBusRedis = "localhost:6379"
 	}
@@ -52,7 +52,7 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	}
 	eventsTopic := os.Getenv("EVENTS_TOPIC")
 	if eventsTopic == "" {
-		eventsTopic = "queue:email_events"
+		eventsTopic = "topic:email.events"
 	}
 	eventBus := eventbus.NewRedisEventBus(redisCli, maxLenEvents, eventsTopic)
 	nodeIdStr := os.Getenv("NODE_ID")
@@ -68,7 +68,27 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	emailStoreRepo := mysql.NewMysqlEmailRepository(db)
 	templateRepo := mysql.NewMysqlTemplateRepository(db)
 	domainRepo := mysql.NewMysqlDomainInfoRepository(db)
-	scheduledEvRepo := redis.NewRedisScheduledEventRepository(redisCli)
+	scheduleKey := os.Getenv("SCHEDULING_KEY")
+	var scheduledEvRepo *redis.RedisScheduledEventRepository = nil
+	if scheduleKey != "" {
+		scheduledEvRepo = redis.NewRedisScheduledEventRepository(redisCli, scheduleKey)
+	}
+	rescheduleRetries := os.Getenv("RESCHEDULE_RETRIES")
+	rescheduleTimeMs := os.Getenv("RESCHEDULE_TIME_MS")
+	var rescheduleConfig *RescheduleConfig = nil
+	if rescheduleRetries != "" && rescheduleTimeMs != "" {
+		rsRetries, errRetries := strconv.ParseInt(rescheduleRetries, 10, 8)
+		rsTime, errTime := strconv.ParseInt(rescheduleTimeMs, 10, 64)
+		if errRetries == nil && errTime == nil {
+			rescheduleConfig = &RescheduleConfig{
+				Retries:     int8(rsRetries),
+				RetryTimeMs: rsTime,
+			}
+		} else {
+			slog.Warn("Invalid reschedule configuration")
+		}
+
+	}
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		panic(err)
@@ -85,7 +105,7 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 				scheduledEvRepo,
 			),
 			EmailerService: infra_services.NewSesEmailer(sesv2.NewFromConfig(awsConfig), snowflakeNode),
-			Rc:             nil,
+			Rc:             rescheduleConfig,
 			BusReader:      eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
 		}, func() {
 			redisCli.Close()

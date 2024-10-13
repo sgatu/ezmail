@@ -144,6 +144,9 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	if !domain.Validated {
 		return fmt.Errorf("domain not validated")
 	}
+	if createEmail.When != nil && dEmailer.scheduledEvRepo == nil {
+		return fmt.Errorf("scheduled email without scheduling configuration")
+	}
 
 	toEmails, err := json.Marshal(toEmailsS)
 	if err != nil {

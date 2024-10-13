@@ -41,16 +41,21 @@ func main() {
 		processors.InitNewEmailProcessor(),
 		processors.InitRescheduledEmailProcessor(),
 	)
-	s := worker.NewScheduler(runningContext.ScheduledEventsRepo, runningContext.EventBus, wg)
+	var s *worker.Scheduler = nil
+	if runningContext.ScheduledEventsRepo != nil {
+		s := worker.NewScheduler(runningContext.ScheduledEventsRepo, runningContext.EventBus, wg)
+		s.Run()
+	}
 	e.Run()
-	s.Run()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		e.Stop()
-		s.Stop()
+		if s != nil {
+			s.Stop()
+		}
 	}()
 	wg.Wait()
 }

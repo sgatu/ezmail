@@ -56,7 +56,7 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	emailRepository := mysql.NewMysqlEmailRepository(db)
 	templateRepository := mysql.NewMysqlTemplateRepository(db)
 
-	mainBusRedis := os.Getenv("COMMON_BUS_REDIS")
+	mainBusRedis := os.Getenv("REDIS")
 	if mainBusRedis == "" {
 		mainBusRedis = "localhost:6379"
 	}
@@ -73,10 +73,14 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	}
 	eventsTopic := os.Getenv("EVENTS_TOPIC")
 	if eventsTopic == "" {
-		eventsTopic = "queue:email_events"
+		eventsTopic = "topic:email.events"
 	}
 	redisEventBus := eventbus.NewRedisEventBus(redisCli, maxLenEvents, eventsTopic)
-	scheduledEvRepo := redis.NewRedisScheduledEventRepository(redisCli)
+	scheduleKey := os.Getenv("SCHEDULING_KEY")
+	var scheduledEvRepo *redis.RedisScheduledEventRepository = nil
+	if scheduleKey != "" {
+		scheduledEvRepo = redis.NewRedisScheduledEventRepository(redisCli, scheduleKey)
+	}
 	emailService := services.NewDefaultEmailStoreService(
 		emailRepository,
 		templateRepository,

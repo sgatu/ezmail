@@ -38,6 +38,5 @@ func NewServer() *chi.Mux {
 			}
 		})
 	})
-	// router.Use(middleware.Logger)
 	return router
 }

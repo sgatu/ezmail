@@ -43,8 +43,8 @@ func (rep *RescheduledEmailProcessor) Process(ctx context.Context, evt events.Ev
 	err = rep.emailer.SendEmail(ctx, email)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Error sending rescheduled email with id %d", email.Id))
-		if rep.rc != nil && evtP.Tries <= rep.rc.Retries {
-			nextRun := time.Now().Add(time.Duration(rep.rc.RetrySec) * time.Second)
+		if rep.rc != nil && evtP.Tries <= rep.rc.Retries && rep.schEvtRepo != nil {
+			nextRun := time.Now().Add(time.Duration(rep.rc.RetryTimeMs) * time.Millisecond)
 			evtP.When = nextRun
 			evtP.Tries += 1
 			errReschedule := rep.schEvtRepo.Push(ctx, nextRun, evtP)

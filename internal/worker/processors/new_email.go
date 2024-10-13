@@ -31,23 +31,21 @@ type NewEmailProcessor struct {
 }
 
 func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) error {
-	slog.Info("Processing new email")
 	evtP, ok := evt.(*events.NewEmailEvent)
 	if !ok {
 		slog.Warn(fmt.Sprintf("Invalid event received by NewEmailProcessor. Type = %s", evt.GetType()))
 		return nil
 	}
-	slog.Info("Preparing email")
 	email, err := nep.emailStoreService.PrepareEmail(ctx, evtP.Id)
 	if err != nil {
 		return err
 	}
-	slog.Info("Sending email")
 	err = nep.emailer.SendEmail(ctx, email)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id))
-		if nep.rc != nil {
-			nextRun := time.Now().Add(time.Duration(nep.rc.RetrySec) * time.Second)
+		if nep.rc != nil && nep.schEvtRepo != nil {
+
+			nextRun := time.Now().Add(time.Duration(nep.rc.RetryTimeMs) * time.Millisecond)
 			rescheduledEvent := events.CreateRescheduledEmailEvent(email.Id, nextRun)
 			errReschedule := nep.schEvtRepo.Push(ctx, rescheduledEvent.When, rescheduledEvent)
 			if errReschedule != nil {

@@ -30,6 +30,7 @@ func (sched *Scheduler) Run() {
 	sched.running = true
 	sched.wg.Add(1)
 	go func() {
+		slog.Info("Starting scheduler...")
 		var cancel context.CancelFunc
 		var ctx context.Context
 		for sched.running {
@@ -44,8 +45,6 @@ func (sched *Scheduler) Run() {
 				continue
 			}
 			if next == nil {
-				slog.Info(fmt.Sprintf("no next event scheduled"))
-
 				continue
 			}
 			slog.Info(fmt.Sprintf("Found scheduled event %s, sending to queue", next.GetType()))

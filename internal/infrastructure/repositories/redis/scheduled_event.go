@@ -12,18 +12,16 @@ import (
 )
 
 type RedisScheduledEventRepository struct {
-	conn *redis.Client
+	conn   *redis.Client
+	schKey string
 }
 
-func NewRedisScheduledEventRepository(client *redis.Client) *RedisScheduledEventRepository {
+func NewRedisScheduledEventRepository(client *redis.Client, schedulingKey string) *RedisScheduledEventRepository {
 	return &RedisScheduledEventRepository{
-		conn: client,
+		conn:   client,
+		schKey: schedulingKey,
 	}
 }
-
-const (
-	redisKey = "q_scheduled_events"
-)
 
 func (repo *RedisScheduledEventRepository) Push(ctx context.Context, when time.Time, evt events.Event) error {
 	evtData, err := evt.Serialize()
@@ -31,7 +29,7 @@ func (repo *RedisScheduledEventRepository) Push(ctx context.Context, when time.T
 		return err
 	}
 	slog.Info(fmt.Sprintf("Scheduling evt %s for %d", evt.GetType(), when.Unix()))
-	result := repo.conn.ZAdd(ctx, redisKey, redis.Z{Score: float64(when.Unix()), Member: evtData})
+	result := repo.conn.ZAdd(ctx, repo.schKey, redis.Z{Score: float64(when.Unix()), Member: evtData})
 	if result.Err() != nil {
 		return result.Err()
 	}
@@ -39,7 +37,7 @@ func (repo *RedisScheduledEventRepository) Push(ctx context.Context, when time.T
 }
 
 func (repo *RedisScheduledEventRepository) GetNext(ctx context.Context) (events.Event, error) {
-	nextOne, err := getNextOne(ctx, repo.conn)
+	nextOne, err := repo.getNextOne(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,19 +48,19 @@ func (repo *RedisScheduledEventRepository) GetNext(ctx context.Context) (events.
 }
 
 func (repo *RedisScheduledEventRepository) RemoveNext(ctx context.Context) error {
-	nextOne, err := getNextOne(ctx, repo.conn)
+	nextOne, err := repo.getNextOne(ctx)
 	if err != nil {
 		return err
 	}
 	if nextOne == nil {
 		return nil
 	}
-	resultRem := repo.conn.ZRem(ctx, redisKey, *nextOne)
+	resultRem := repo.conn.ZRem(ctx, repo.schKey, *nextOne)
 	return resultRem.Err()
 }
 
-func getNextOne(ctx context.Context, conn *redis.Client) (*string, error) {
-	result := conn.ZRangeByScore(ctx, redisKey, &redis.ZRangeBy{
+func (repo *RedisScheduledEventRepository) getNextOne(ctx context.Context) (*string, error) {
+	result := repo.conn.ZRangeByScore(ctx, repo.schKey, &redis.ZRangeBy{
 		Min:   "-inf",
 		Max:   strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Count: 1,
