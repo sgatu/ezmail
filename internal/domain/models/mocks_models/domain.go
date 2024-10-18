@@ -14,7 +14,7 @@ GetAll(ctx context.Context) ([]DomainInfo, error)
 	DeleteDomain(ctx context.Context, id int64) error
 	Save(ctx context.Context, di *DomainInfo) error
 */
-type domainRepositoryMock struct {
+type DomainRepositoryMock struct {
 	returnSave    error
 	returnDelete  error
 	returnGetById struct {
@@ -36,32 +36,52 @@ type domainRepositoryMock struct {
 	GetByNameCalls int
 }
 
-func (drm *domainRepositoryMock) GetDomainInfoById(ctx context.Context, id int64) (*domain.DomainInfo, error) {
+func MockDomainRepository() *DomainRepositoryMock {
+	return &DomainRepositoryMock{
+		returnGetAll: struct {
+			err    error
+			diList []domain.DomainInfo
+		}{
+			err:    nil,
+			diList: make([]domain.DomainInfo, 0),
+		},
+		returnGetById: struct {
+			err    error
+			domain *domain.DomainInfo
+		}{},
+		returnGetByName: struct {
+			err    error
+			domain *domain.DomainInfo
+		}{},
+	}
+}
+
+func (drm *DomainRepositoryMock) GetDomainInfoById(ctx context.Context, id int64) (*domain.DomainInfo, error) {
 	drm.GetByIdCalls++
 	return drm.returnGetById.domain, drm.returnGetById.err
 }
 
-func (drm *domainRepositoryMock) GetDomainInfoByName(ctx context.Context, name string) (*domain.DomainInfo, error) {
+func (drm *DomainRepositoryMock) GetDomainInfoByName(ctx context.Context, name string) (*domain.DomainInfo, error) {
 	drm.GetByNameCalls++
 	return drm.returnGetByName.domain, drm.returnGetByName.err
 }
 
-func (drm *domainRepositoryMock) Save(ctx context.Context, dom *domain.DomainInfo) error {
+func (drm *DomainRepositoryMock) Save(ctx context.Context, dom *domain.DomainInfo) error {
 	drm.SaveCalls++
 	return drm.returnSave
 }
 
-func (drm *domainRepositoryMock) DeleteDomain(ctx context.Context, id int64) error {
+func (drm *DomainRepositoryMock) DeleteDomain(ctx context.Context, id int64) error {
 	drm.DeleteCalls++
 	return drm.returnDelete
 }
 
-func (drm *domainRepositoryMock) GetAll(ctx context.Context) ([]domain.DomainInfo, error) {
+func (drm *DomainRepositoryMock) GetAll(ctx context.Context) ([]domain.DomainInfo, error) {
 	drm.GetAllCalls++
 	return drm.returnGetAll.diList, drm.returnGetAll.err
 }
 
-func (drm *domainRepositoryMock) SetGetByIdReturn(dom *domain.DomainInfo, err error) {
+func (drm *DomainRepositoryMock) SetGetByIdReturn(dom *domain.DomainInfo, err error) {
 	drm.returnGetById = struct {
 		err    error
 		domain *domain.DomainInfo
@@ -71,15 +91,15 @@ func (drm *domainRepositoryMock) SetGetByIdReturn(dom *domain.DomainInfo, err er
 	}
 }
 
-func (drm *domainRepositoryMock) SetSaveReturn(err error) {
+func (drm *DomainRepositoryMock) SetSaveReturn(err error) {
 	drm.returnSave = err
 }
 
-func (drm *domainRepositoryMock) SetDeleteReturn(err error) {
+func (drm *DomainRepositoryMock) SetDeleteReturn(err error) {
 	drm.returnDelete = err
 }
 
-func (drm *domainRepositoryMock) SetGetByNameReturn(dom *domain.DomainInfo, err error) {
+func (drm *DomainRepositoryMock) SetGetByNameReturn(dom *domain.DomainInfo, err error) {
 	drm.returnGetByName = struct {
 		err    error
 		domain *domain.DomainInfo
@@ -89,7 +109,7 @@ func (drm *domainRepositoryMock) SetGetByNameReturn(dom *domain.DomainInfo, err 
 	}
 }
 
-func (drm *domainRepositoryMock) SetGetAllReturn(diList []domain.DomainInfo, err error) {
+func (drm *DomainRepositoryMock) SetGetAllReturn(diList []domain.DomainInfo, err error) {
 	drm.returnGetAll = struct {
 		err    error
 		diList []domain.DomainInfo

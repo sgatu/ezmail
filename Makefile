@@ -20,3 +20,12 @@ run:
 run-exec:
 	@$(MAKE) -s _build-executor
 	@cd ./dist/executor && ./executor
+test:
+	go test ./.../test -count=1 -coverpkg=./... -coverprofile=/tmp/cover.out
+cover:
+	@$(MAKE) -s test
+	go tool cover -func=/tmp/cover.out 
+cover-short:
+	@$(MAKE) -s test > /dev/null
+	@echo "Total coverage: " $$(go tool cover -func=/tmp/cover.out | grep "total:"  | awk '{print $$NF}')
+

@@ -6,31 +6,31 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 )
 
-type identityManagerMock struct {
+type IdentityManagerMock struct {
 	createIdentityResult error
 	deleteIdentityResult error
 	CreateIdentityCalls  int
 	DeleteIdentityCalls  int
 }
 
-func MockIdentityManager() *identityManagerMock {
-	return &identityManagerMock{}
+func MockIdentityManager() *IdentityManagerMock {
+	return &IdentityManagerMock{}
 }
 
-func (imm *identityManagerMock) CreateIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
+func (imm *IdentityManagerMock) CreateIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
 	imm.CreateIdentityCalls++
 	return imm.createIdentityResult
 }
 
-func (imm *identityManagerMock) DeleteIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
+func (imm *IdentityManagerMock) DeleteIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
 	imm.DeleteIdentityCalls++
 	return imm.deleteIdentityResult
 }
 
-func (imm *identityManagerMock) SetCreateIdentityResult(r error) {
+func (imm *IdentityManagerMock) SetCreateIdentityResult(r error) {
 	imm.createIdentityResult = r
 }
 
-func (imm *identityManagerMock) SetDeleteIdentityResult(r error) {
+func (imm *IdentityManagerMock) SetDeleteIdentityResult(r error) {
 	imm.deleteIdentityResult = r
 }

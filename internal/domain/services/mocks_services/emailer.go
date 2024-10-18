@@ -6,20 +6,20 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/services"
 )
 
-type emailerMock struct {
+type EmailerMock struct {
 	sendResult     error
 	SendEmailCalls int
 }
 
-func MockEmailer() *emailerMock {
-	return &emailerMock{}
+func MockEmailer() *EmailerMock {
+	return &EmailerMock{}
 }
 
-func (em *emailerMock) SendEmail(ctx context.Context, email *services.PreparedEmail) error {
+func (em *EmailerMock) SendEmail(ctx context.Context, email *services.PreparedEmail) error {
 	em.SendEmailCalls++
 	return em.sendResult
 }
 
-func (em *emailerMock) SetSendResult(e error) {
+func (em *EmailerMock) SetSendResult(e error) {
 	em.sendResult = e
 }

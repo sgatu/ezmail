@@ -7,7 +7,7 @@ import (
 	"github.com/sgatu/ezmail/internal/domain/services"
 )
 
-type emailerStoreServiceMock struct {
+type EmailerStoreServiceMock struct {
 	createEmailResult     error
 	markEmailAsSentResult error
 	getByIdResult         struct {
@@ -24,8 +24,8 @@ type emailerStoreServiceMock struct {
 	MarkEmailAsSentCalls int
 }
 
-func MockEmailStoreService() *emailerStoreServiceMock {
-	return &emailerStoreServiceMock{
+func MockEmailStoreService() *EmailerStoreServiceMock {
+	return &EmailerStoreServiceMock{
 		getByIdResult: struct {
 			email *email.Email
 			err   error
@@ -43,15 +43,15 @@ func MockEmailStoreService() *emailerStoreServiceMock {
 	}
 }
 
-func (emssm *emailerStoreServiceMock) SetCreateEmailResult(err error) {
+func (emssm *EmailerStoreServiceMock) SetCreateEmailResult(err error) {
 	emssm.createEmailResult = err
 }
 
-func (emssm *emailerStoreServiceMock) SetMarkEmailAsSentResult(err error) {
+func (emssm *EmailerStoreServiceMock) SetMarkEmailAsSentResult(err error) {
 	emssm.markEmailAsSentResult = err
 }
 
-func (emssm *emailerStoreServiceMock) SetGetByIdResult(em *email.Email, err error) {
+func (emssm *EmailerStoreServiceMock) SetGetByIdResult(em *email.Email, err error) {
 	emssm.getByIdResult = struct {
 		email *email.Email
 		err   error
@@ -61,7 +61,7 @@ func (emssm *emailerStoreServiceMock) SetGetByIdResult(em *email.Email, err erro
 	}
 }
 
-func (emssm *emailerStoreServiceMock) SetPrepareEmailResult(em *services.PreparedEmail, err error) {
+func (emssm *EmailerStoreServiceMock) SetPrepareEmailResult(em *services.PreparedEmail, err error) {
 	emssm.prepareEmailResult = struct {
 		email *services.PreparedEmail
 		err   error
@@ -71,22 +71,22 @@ func (emssm *emailerStoreServiceMock) SetPrepareEmailResult(em *services.Prepare
 	}
 }
 
-func (emssm *emailerStoreServiceMock) CreateEmail(ctx context.Context, createEmail *email.CreateNewEmailRequest) error {
+func (emssm *EmailerStoreServiceMock) CreateEmail(ctx context.Context, createEmail *email.CreateNewEmailRequest) error {
 	emssm.CreateEmailCalls++
 	return emssm.createEmailResult
 }
 
-func (emssm *emailerStoreServiceMock) GetById(ctx context.Context, id int64) (*email.Email, error) {
+func (emssm *EmailerStoreServiceMock) GetById(ctx context.Context, id int64) (*email.Email, error) {
 	emssm.GetByIdCalls++
 	return emssm.getByIdResult.email, emssm.getByIdResult.err
 }
 
-func (emssm *emailerStoreServiceMock) PrepareEmail(ctx context.Context, id int64) (*services.PreparedEmail, error) {
+func (emssm *EmailerStoreServiceMock) PrepareEmail(ctx context.Context, id int64) (*services.PreparedEmail, error) {
 	emssm.GetByIdCalls++
 	return emssm.prepareEmailResult.email, emssm.prepareEmailResult.err
 }
 
-func (emssm *emailerStoreServiceMock) MarkEmailAsSent(ctx context.Context, id int64) error {
+func (emssm *EmailerStoreServiceMock) MarkEmailAsSent(ctx context.Context, id int64) error {
 	emssm.MarkEmailAsSentCalls++
 	return emssm.markEmailAsSentResult
 }
