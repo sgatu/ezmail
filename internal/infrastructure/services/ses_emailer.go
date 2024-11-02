@@ -10,16 +10,16 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
-	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/services"
+	"github.com/sgatu/ezmail/internal/infrastructure/services/thirdparty"
 )
 
 type SesEmailer struct {
-	awsSesClient  *sesv2.Client
-	snowflakeNode *snowflake.Node
+	awsSesClient  thirdparty.SESClient
+	snowflakeNode thirdparty.BaseSnowflakeNode
 }
 
-func NewSesEmailer(sesClient *sesv2.Client, snowflakeNode *snowflake.Node) *SesEmailer {
+func NewSesEmailer(sesClient thirdparty.SESClient, snowflakeNode thirdparty.BaseSnowflakeNode) *SesEmailer {
 	return &SesEmailer{
 		awsSesClient:  sesClient,
 		snowflakeNode: snowflakeNode,
@@ -32,20 +32,20 @@ func (se *SesEmailer) SendEmail(ctx context.Context, email *services.PreparedEma
 	if err != nil {
 		return err
 	}
+	if len(toAddresses) == 0 {
+		return fmt.Errorf("no to address")
+	}
 	var bccAddresses []string
 	err = json.Unmarshal([]byte(email.BCC), &bccAddresses)
 	if err != nil {
 		return err
 	}
-	emailData, err := prepareEmail(email, toAddresses, se.snowflakeNode)
-	if err != nil {
-		return err
-	}
+	emailData := prepareEmail(email, toAddresses, se.snowflakeNode)
 	replyTo := []string{}
 	if email.ReplyTo != "" {
 		replyTo = []string{email.ReplyTo}
 	}
-	result, err := se.awsSesClient.SendEmail(ctx, &sesv2.SendEmailInput{
+	_, err = se.awsSesClient.SendEmail(ctx, &sesv2.SendEmailInput{
 		ReplyToAddresses: replyTo,
 		FromEmailAddress: &email.From,
 		Destination: &types.Destination{
@@ -61,11 +61,10 @@ func (se *SesEmailer) SendEmail(ctx context.Context, email *services.PreparedEma
 	if err != nil {
 		return err
 	}
-	fmt.Printf("|Email fully send? %+v\n", result)
 	return nil
 }
 
-func prepareEmail(email *services.PreparedEmail, toAddresses []string, snowflakeNode *snowflake.Node) ([]byte, error) {
+func prepareEmail(email *services.PreparedEmail, toAddresses []string, snowflakeNode thirdparty.BaseSnowflakeNode) []byte {
 	var emailBuffer bytes.Buffer
 	boundary := snowflakeNode.Generate().Base36()
 	writeHeader(&emailBuffer, "From", email.From)
@@ -78,20 +77,14 @@ func prepareEmail(email *services.PreparedEmail, toAddresses []string, snowflake
 	writeHeader(&emailBuffer, "Content-Type", "text/plain; charset=UTF-8")
 	writeHeader(&emailBuffer, "Content-Transfer-Encoding", "quoted-printable")
 	emailBuffer.WriteString("\n")
-	err := writeQuotedPrintable(&emailBuffer, email.Text)
-	if err != nil {
-		return nil, err
-	}
+	writeQuotedPrintable(&emailBuffer, email.Text)
 	emailBuffer.WriteString(fmt.Sprintf("\n--sub_%s\n", boundary))
 	writeHeader(&emailBuffer, "Content-Type", "text/html; charset=UTF-8")
 	writeHeader(&emailBuffer, "Content-Transfer-Encoding", "quoted-printable")
 	emailBuffer.WriteString("\n")
-	err = writeQuotedPrintable(&emailBuffer, email.Html)
-	if err != nil {
-		return nil, err
-	}
+	writeQuotedPrintable(&emailBuffer, email.Html)
 	emailBuffer.WriteString(fmt.Sprintf("\n--sub_%s--\n\n--%s--\n", boundary, boundary))
-	return emailBuffer.Bytes(), nil
+	return emailBuffer.Bytes()
 }
 
 func writeHeader(buf *bytes.Buffer, headerName string, value string) {
@@ -101,11 +94,9 @@ func writeHeader(buf *bytes.Buffer, headerName string, value string) {
 	buf.WriteString("\n")
 }
 
-func writeQuotedPrintable(buf *bytes.Buffer, data string) error {
+func writeQuotedPrintable(buf *bytes.Buffer, data string) {
 	quotedWritter := quotedprintable.NewWriter(buf)
-	_, err := quotedWritter.Write([]byte(data))
-	if err != nil {
-		return err
-	}
-	return quotedWritter.Close()
+	// since bytes.Buffer wont return err neither will quotedWritter
+	quotedWritter.Write([]byte(data))
+	quotedWritter.Close()
 }

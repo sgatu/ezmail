@@ -2,7 +2,9 @@ package test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/mail"
 	"testing"
 	"time"
 
@@ -30,15 +32,26 @@ func getDefaultEmailStorageService() (
 	ev := mocks_models.MockEventBus()
 	sc := mocks_models.MockScheduledEventRepository()
 
-	srv := services.NewDefaultEmailStoreService(
-		em,
-		tp,
-		dm,
-		ev,
-		sn,
-		sc,
-	)
+	srv := services.NewDefaultEmailStoreService(em, tp, dm, ev, sn, sc)
 	return srv, em, tp, dm, ev, sc, sn
+}
+
+func getDefaultEmailStorageService_NoScheduler() (
+	services.EmailStoreService,
+	*mocks_models.EmailRepositoryMock,
+	*mocks_models.TemplateRepositoryMock,
+	*mocks_models.DomainRepositoryMock,
+	*mocks_models.EventBusMock,
+	*snowflake.Node,
+) {
+	sn, _ := snowflake.NewNode(0)
+	em := mocks_models.MockEmailRepository()
+	tp := mocks_models.MockTemplateRepository()
+	dm := mocks_models.MockDomainRepository()
+	ev := mocks_models.MockEventBus()
+
+	srv := services.NewDefaultEmailStoreService(em, tp, dm, ev, sn, nil)
+	return srv, em, tp, dm, ev, sn
 }
 
 func TestDefaultGetById(t *testing.T) {
@@ -144,5 +157,178 @@ func TestDefaultPrepareEmail_Ok(t *testing.T) {
 	}
 	if pe.ReplyTo != "test_reply_to" {
 		t.Fatal("Email preparation failed to set reply to")
+	}
+}
+
+func TestDefaultCreateNewEmail_NoTemplateId(t *testing.T) {
+	svc, _, _, _, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 0,
+	}
+	err := svc.CreateEmail(context.TODO(), &crReq)
+	if err == nil || err.Error() != email.ErrTemplateNotFound("none").Error() {
+		t.Fatal("Expected error on email creation with no template id")
+	}
+}
+
+func TestDefaultCreateNewEmail_TemplateNotFound(t *testing.T) {
+	svc, _, tpr, _, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+	}
+	err := fmt.Errorf("error")
+	tpr.SetGetByIdReturn(nil, err)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || !errors.Is(err, errCreate) {
+		t.Fatal("Expected error on email creation when template not found")
+	}
+}
+
+func TestDefaultCreateNewEmail_InvalidFromEmail(t *testing.T) {
+	svc, _, tpr, _, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+	}
+	tpr.SetGetByIdReturn(&email.Template{}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || errCreate.Error() != "invalid from value" {
+		t.Fatal("Expected error on email creation when invalid from email is set")
+	}
+}
+
+func TestDefaultCreateNewEmail_InvalidToEmails(t *testing.T) {
+	svc, _, tpr, _, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To:         make([]models.EmailAddress, 0),
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+	}
+	tpr.SetGetByIdReturn(&email.Template{}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || errCreate.Error() != "no email destinataries" {
+		t.Fatal("Expected error on email creation when no to emails are set")
+	}
+}
+
+func TestDefaultCreateNewEmail_DomainNotFound(t *testing.T) {
+	svc, _, tpr, dir, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+	}
+	tpr.SetGetByIdReturn(&email.Template{}, nil)
+	err := fmt.Errorf("error")
+	dir.SetGetByNameReturn(nil, err)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || !errors.Is(err, errCreate) {
+		t.Fatal("Expected error on email creation when domain not found")
+	}
+}
+
+func TestDefaultCreateNewEmail_DomainNotValidated(t *testing.T) {
+	svc, _, tpr, dir, _, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+	}
+	tpr.SetGetByIdReturn(&email.Template{}, nil)
+	dir.SetGetByNameReturn(&domain.DomainInfo{Validated: false}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || errCreate.Error() != "domain not validated" {
+		t.Fatal("Expected error on email creation when domain not validated")
+	}
+}
+
+func TestDefaultCreateNewEmail_NoScheduler(t *testing.T) {
+	svc, _, tpr, dir, _, _ := getDefaultEmailStorageService_NoScheduler()
+	dtWhen := models.DateTime(time.Now())
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+		When: &dtWhen,
+	}
+	tpr.SetGetByIdReturn(&email.Template{}, nil)
+	dir.SetGetByNameReturn(&domain.DomainInfo{Validated: true}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate == nil || errCreate.Error() != "scheduled email without scheduling configuration" {
+		t.Fatal("Expected error on email creation when scheduled time set but no scheduler defined")
+	}
+}
+
+func TestDefaultCreateNewEmail_OkNow(t *testing.T) {
+	svc, emr, tpr, dir, evBus, _, _ := getDefaultEmailStorageService()
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+	}
+	tpr.SetGetByIdReturn(&email.Template{Id: 2}, nil)
+	dir.SetGetByNameReturn(&domain.DomainInfo{Validated: true, Id: 3}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate != nil {
+		t.Fatal("Unexpected error while creating email")
+	}
+	if emr.SaveCalls != 1 {
+		t.Fatal("Expected call to save email on email repository")
+	}
+	if evBus.PushCalls != 1 {
+		t.Fatal("Expected event of new email to be pushed to event bus")
+	}
+}
+
+func TestDefaultCreateNewEmail_OkScheduled(t *testing.T) {
+	svc, emr, tpr, dir, _, schRepo, _ := getDefaultEmailStorageService()
+	dtWhen := models.DateTime(time.Now().Add(5000 * time.Second))
+	crReq := email.CreateNewEmailRequest{
+		TemplateId: 1,
+		To: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		From: models.EmailAddress{ParsedEmail: mail.Address{
+			Name:    "test",
+			Address: "test@test.tld",
+		}},
+		BCC: []models.EmailAddress{
+			{StringEmail: "to@other.tld"},
+		},
+		When: &dtWhen,
+	}
+	tpr.SetGetByIdReturn(&email.Template{Id: 2}, nil)
+	dir.SetGetByNameReturn(&domain.DomainInfo{Validated: true, Id: 3}, nil)
+	errCreate := svc.CreateEmail(context.TODO(), &crReq)
+	if errCreate != nil {
+		t.Fatal("Unexpected error while creating email")
+	}
+	if emr.SaveCalls != 1 {
+		t.Fatal("Expected call to save email on email repository")
+	}
+	if schRepo.PushCalls != 1 {
+		t.Fatal("Expected event of new email to be pushed to scheduler queue")
 	}
 }

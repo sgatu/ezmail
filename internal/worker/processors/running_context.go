@@ -17,6 +17,7 @@ import (
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/redis"
 	infra_services "github.com/sgatu/ezmail/internal/infrastructure/services"
+	"github.com/sgatu/ezmail/internal/infrastructure/services/thirdparty"
 	"github.com/uptrace/bun"
 )
 
@@ -93,6 +94,7 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	if err != nil {
 		panic(err)
 	}
+	sesClient := sesv2.NewFromConfig(awsConfig)
 	return &RunningContext{
 			EventBus:            eventBus,
 			ScheduledEventsRepo: scheduledEvRepo,
@@ -104,9 +106,12 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 				snowflakeNode,
 				scheduledEvRepo,
 			),
-			EmailerService: infra_services.NewSesEmailer(sesv2.NewFromConfig(awsConfig), snowflakeNode),
-			Rc:             rescheduleConfig,
-			BusReader:      eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
+			EmailerService: infra_services.NewSesEmailer(
+				&thirdparty.AWSSesV2Client{Client: sesClient},
+				snowflakeNode,
+			),
+			Rc:        rescheduleConfig,
+			BusReader: eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
 		}, func() {
 			redisCli.Close()
 		}, nil

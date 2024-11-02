@@ -82,7 +82,7 @@ func (emssm *EmailerStoreServiceMock) GetById(ctx context.Context, id int64) (*e
 }
 
 func (emssm *EmailerStoreServiceMock) PrepareEmail(ctx context.Context, id int64) (*services.PreparedEmail, error) {
-	emssm.GetByIdCalls++
+	emssm.PrepareEmailCalls++
 	return emssm.prepareEmailResult.email, emssm.prepareEmailResult.err
 }
 

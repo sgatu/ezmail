@@ -125,9 +125,9 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	if err != nil {
 		return err
 	}
-	addrParts := strings.SplitN(createEmail.From.ParsedEmail.Address, "@", 2)
-	domainName := addrParts[1]
-
+	if !strings.Contains(createEmail.From.ParsedEmail.Address, "@") {
+		return fmt.Errorf("invalid from value")
+	}
 	if createEmail.To == nil || len(createEmail.To) == 0 {
 		return fmt.Errorf("no email destinataries")
 	}
@@ -135,6 +135,9 @@ func (dEmailer *DefaultEmailStoreService) CreateEmail(ctx context.Context, creat
 	for _, to := range createEmail.To {
 		toEmailsS = append(toEmailsS, to.StringEmail)
 	}
+
+	addrParts := strings.SplitN(createEmail.From.ParsedEmail.Address, "@", 2)
+	domainName := addrParts[1]
 
 	domain, err := dEmailer.domainInfoRepository.GetDomainInfoByName(ctx, domainName)
 	if err != nil {
