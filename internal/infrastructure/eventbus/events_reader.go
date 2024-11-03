@@ -7,16 +7,17 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 )
 
 type RedisEventsReader struct {
-	conn       *redis.Client
+	conn       thirdparty.BaseRedisClient
 	stream     string
 	name       string
 	autocommit bool
 }
 
-func NewRedisEventsReader(conn *redis.Client, stream string, readerName string, autocommit bool) *RedisEventsReader {
+func NewRedisEventsReader(conn thirdparty.BaseRedisClient, stream string, readerName string, autocommit bool) *RedisEventsReader {
 	return &RedisEventsReader{
 		conn:       conn,
 		stream:     stream,

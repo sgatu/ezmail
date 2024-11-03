@@ -10,7 +10,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	iservices "github.com/sgatu/ezmail/internal/infrastructure/services"
-	"github.com/sgatu/ezmail/internal/infrastructure/services/thirdparty"
+	"github.com/sgatu/ezmail/internal/thirdparty/mock"
 )
 
 func getPreparedEmail() *services.PreparedEmail {
@@ -52,7 +52,7 @@ func getPreparedEmailInvalidBcc() *services.PreparedEmail {
 }
 
 func TestSendEmailInvalidTo(t *testing.T) {
-	client := thirdparty.MockSesV2Client{}
+	client := mock.MockSesV2Client{}
 	sn, _ := snowflake.NewNode(8)
 	s := iservices.NewSesEmailer(&client, sn)
 	err := s.SendEmail(context.TODO(), getPreparedEmailInvalidTo())
@@ -62,7 +62,7 @@ func TestSendEmailInvalidTo(t *testing.T) {
 }
 
 func TestSendEmailEmptyTo(t *testing.T) {
-	client := thirdparty.MockSesV2Client{}
+	client := mock.MockSesV2Client{}
 	sn, _ := snowflake.NewNode(8)
 	s := iservices.NewSesEmailer(&client, sn)
 	err := s.SendEmail(context.TODO(), getPreparedEmailEmptyTo())
@@ -72,7 +72,7 @@ func TestSendEmailEmptyTo(t *testing.T) {
 }
 
 func TestSendEmailInvalidBcc(t *testing.T) {
-	client := thirdparty.MockSesV2Client{}
+	client := mock.MockSesV2Client{}
 	sn, _ := snowflake.NewNode(8)
 	s := iservices.NewSesEmailer(&client, sn)
 	err := s.SendEmail(context.TODO(), getPreparedEmailInvalidBcc())
@@ -82,7 +82,7 @@ func TestSendEmailInvalidBcc(t *testing.T) {
 }
 
 func TestSendEmailSesFail(t *testing.T) {
-	client := thirdparty.MockSesV2Client{}
+	client := mock.MockSesV2Client{}
 	errSend := fmt.Errorf("err")
 	client.SetSendEmailResponse(nil, errSend)
 	sn, _ := snowflake.NewNode(8)
@@ -94,9 +94,9 @@ func TestSendEmailSesFail(t *testing.T) {
 }
 
 func TestSendEmailSesOk(t *testing.T) {
-	client := thirdparty.MockSesV2Client{}
+	client := mock.MockSesV2Client{}
 	client.SetSendEmailResponse(nil, nil)
-	sn := &thirdparty.MockSnowflakeNode{}
+	sn := &mock.MockSnowflakeNode{}
 	idBoundary := snowflake.ID(99999999999)
 	boundaryB36 := idBoundary.Base36()
 	sn.SetNextId(idBoundary)

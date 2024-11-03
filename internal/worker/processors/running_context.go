@@ -17,7 +17,7 @@ import (
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/redis"
 	infra_services "github.com/sgatu/ezmail/internal/infrastructure/services"
-	"github.com/sgatu/ezmail/internal/infrastructure/services/thirdparty"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 	"github.com/uptrace/bun"
 )
 
@@ -39,12 +39,12 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	if mainBusRedis == "" {
 		mainBusRedis = "localhost:6379"
 	}
-	redisCli := redis.NewClient(&redis.Options{
+	redisCli := thirdparty.RedisClient{Client: redis.NewClient(&redis.Options{
 		Addr:                  mainBusRedis,
 		Password:              "",
 		DB:                    0,
 		ContextTimeoutEnabled: true,
-	})
+	})}
 	maxLenEventsStr := os.Getenv("REDIS_EVENTS_MAX_LEN")
 	maxLenEvents, err := strconv.ParseInt(maxLenEventsStr, 10, 64)
 	if err != nil {

@@ -9,14 +9,15 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 )
 
 type RedisScheduledEventRepository struct {
-	conn   *redis.Client
+	conn   thirdparty.BaseRedisClient
 	schKey string
 }
 
-func NewRedisScheduledEventRepository(client *redis.Client, schedulingKey string) *RedisScheduledEventRepository {
+func NewRedisScheduledEventRepository(client thirdparty.BaseRedisClient, schedulingKey string) *RedisScheduledEventRepository {
 	return &RedisScheduledEventRepository{
 		conn:   client,
 		schKey: schedulingKey,

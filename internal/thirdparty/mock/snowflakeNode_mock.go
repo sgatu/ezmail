@@ -1,14 +1,6 @@
-package thirdparty
+package mock
 
 import "github.com/bwmarrin/snowflake"
-
-type BaseSnowflakeNode interface {
-	Generate() snowflake.ID
-}
-
-type SnowflakeNode struct {
-	*snowflake.Node
-}
 
 type MockSnowflakeNode struct {
 	nextGenerateID snowflake.ID

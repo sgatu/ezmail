@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/sgatu/ezmail/internal/domain/services"
-	"github.com/sgatu/ezmail/internal/infrastructure/services/thirdparty"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 )
 
 type SesEmailer struct {

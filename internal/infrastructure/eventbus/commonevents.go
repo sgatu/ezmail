@@ -7,15 +7,16 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 )
 
 type RedisEventBus struct {
-	redisConnection *redis.Client
+	redisConnection thirdparty.BaseRedisClient
 	eventsTopic     string
 	maxLen          int64
 }
 
-func NewRedisEventBus(redisConn *redis.Client, maxLen int64, eventsTopic string) *RedisEventBus {
+func NewRedisEventBus(redisConn thirdparty.BaseRedisClient, maxLen int64, eventsTopic string) *RedisEventBus {
 	return &RedisEventBus{
 		redisConnection: redisConn,
 		maxLen:          maxLen,

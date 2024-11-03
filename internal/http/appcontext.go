@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/email"
@@ -18,6 +19,7 @@ import (
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/mysql"
 	"github.com/sgatu/ezmail/internal/infrastructure/repositories/redis"
 	infra_services "github.com/sgatu/ezmail/internal/infrastructure/services"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 	"github.com/uptrace/bun"
 )
 
@@ -89,13 +91,17 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 		snowflakeNode,
 		scheduledEvRepo,
 	)
+	sesClient := sesv2.NewFromConfig(awsConfig)
 	return &AppContext{
 			DomainInfoRepository: domainInfoRepository,
-			IdentityManager:      infra_services.NewSESIdentityManager(domainInfoRepository, awsConfig, snowflakeNode),
-			SnowflakeNode:        snowflakeNode,
-			EmailStoreService:    emailService,
-			TemplateRepository:   templateRepository,
-			EventsBus:            redisEventBus,
+			IdentityManager: infra_services.NewSESIdentityManager(
+				domainInfoRepository,
+				thirdparty.AWSSesV2Client{Client: sesClient},
+				snowflakeNode),
+			SnowflakeNode:      snowflakeNode,
+			EmailStoreService:  emailService,
+			TemplateRepository: templateRepository,
+			EventsBus:          redisEventBus,
 		}, func() {
 			redisCli.Close()
 		}

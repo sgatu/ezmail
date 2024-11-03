@@ -9,18 +9,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
-	"github.com/sgatu/ezmail/internal/domain/services"
+	"github.com/sgatu/ezmail/internal/thirdparty"
 )
 
-const _DOMAIN_PREFIX = "dispatch"
+const DOMAIN_PREFIX = "dispatch"
 
 type SESIdentityManager struct {
-	awsSesClient *sesv2.Client
+	awsSesClient thirdparty.SESClient
 }
 
-func NewSESIdentityManager(domainRepository domain.DomainInfoRepository, awsConfig aws.Config, snowflakeNode *snowflake.Node) services.IdentityManager {
+func NewSESIdentityManager(domainRepository domain.DomainInfoRepository, sesClient thirdparty.SESClient, snowflakeNode *snowflake.Node) *SESIdentityManager {
 	return &SESIdentityManager{
-		awsSesClient: sesv2.NewFromConfig(awsConfig),
+		awsSesClient: sesClient,
 	}
 }
 
@@ -37,7 +37,7 @@ func (s *SESIdentityManager) CreateIdentity(ctx context.Context, domainInfo *dom
 	// create mail from configuration
 	_, err = s.awsSesClient.PutEmailIdentityMailFromAttributes(ctx, &sesv2.PutEmailIdentityMailFromAttributesInput{
 		EmailIdentity:  &domainInfo.DomainName,
-		MailFromDomain: aws.String(fmt.Sprintf("%s.%s", _DOMAIN_PREFIX, domainInfo.DomainName)),
+		MailFromDomain: aws.String(fmt.Sprintf("%s.%s", DOMAIN_PREFIX, domainInfo.DomainName)),
 	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
 	if err != nil {
 		s.DeleteIdentity(ctx, domainInfo)
@@ -67,14 +67,14 @@ func setDNSRecords(dkimTokens []string, domainInfo *domain.DomainInfo) {
 	records = append(records, domain.DnsRecord{
 		Purpose: "SPF",
 		Type:    "MX",
-		Name:    _DOMAIN_PREFIX,
+		Name:    DOMAIN_PREFIX,
 		Value:   fmt.Sprintf("10 feedback-smtp.%s.amazonses.com", domainInfo.Region),
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})
 	records = append(records, domain.DnsRecord{
 		Purpose: "SPF",
 		Type:    "TXT",
-		Name:    _DOMAIN_PREFIX,
+		Name:    DOMAIN_PREFIX,
 		Value:   "v=spf1 include:amazonses.com ~all",
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})

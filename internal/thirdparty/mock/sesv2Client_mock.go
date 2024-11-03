@@ -1,4 +1,4 @@
-package thirdparty
+package mock
 
 import (
 	"context"
@@ -6,13 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
-type SESClient interface {
-	SendEmail(ctx context.Context, params *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error)
-}
-
-type AWSSesV2Client struct {
-	*sesv2.Client
-}
 type MockSesV2Client struct {
 	sendResponse struct {
 		out *sesv2.SendEmailOutput
@@ -24,6 +17,10 @@ type MockSesV2Client struct {
 	}
 	putEmailIdentityMailFromAttributesResponse struct {
 		out *sesv2.PutEmailIdentityMailFromAttributesOutput
+		err error
+	}
+	deleteIdentityResponse struct {
+		out *sesv2.DeleteEmailIdentityOutput
 		err error
 	}
 	sendLastInput struct {
@@ -41,10 +38,16 @@ type MockSesV2Client struct {
 		PutEmailIdentityInput *sesv2.PutEmailIdentityMailFromAttributesInput
 		Opts                  []func(*sesv2.Options)
 	}
+	deleteIdentityInput struct {
+		Ctx                 context.Context
+		DeleteIdentityInput *sesv2.DeleteEmailIdentityInput
+		Opts                []func(*sesv2.Options)
+	}
 
 	SendCalls                               int
 	CreateIdentityCalls                     int
 	PutIdentityEmailMailFromAttributesCalls int
+	DeleteIdentityCalls                     int
 }
 
 func (ms *MockSesV2Client) SendEmail(ctx context.Context, params *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
@@ -127,6 +130,46 @@ func (ms *MockSesV2Client) SetPutEmailIdentityMailFromAttributesResponse(
 ) {
 	ms.putEmailIdentityMailFromAttributesResponse = struct {
 		out *sesv2.PutEmailIdentityMailFromAttributesOutput
+		err error
+	}{
+		out: out,
+		err: err,
+	}
+}
+
+func (ms *MockSesV2Client) GetLastPutEmailIdentityMailFromAttributesParams() struct {
+	Ctx                   context.Context
+	PutEmailIdentityInput *sesv2.PutEmailIdentityMailFromAttributesInput
+	Opts                  []func(*sesv2.Options)
+} {
+	return ms.putEmailIdentityMailFromAttributesInput
+}
+
+func (ms *MockSesV2Client) DeleteEmailIdentity(ctx context.Context, params *sesv2.DeleteEmailIdentityInput, optFns ...func(*sesv2.Options)) (*sesv2.DeleteEmailIdentityOutput, error) {
+	ms.DeleteIdentityCalls++
+	ms.deleteIdentityInput = struct {
+		Ctx                 context.Context
+		DeleteIdentityInput *sesv2.DeleteEmailIdentityInput
+		Opts                []func(*sesv2.Options)
+	}{
+		Ctx:                 ctx,
+		DeleteIdentityInput: params,
+		Opts:                optFns,
+	}
+	return ms.deleteIdentityResponse.out, ms.deleteIdentityResponse.err
+}
+
+func (ms *MockSesV2Client) GetLastDeleteEmailIdentityInput() struct {
+	Ctx                 context.Context
+	DeleteIdentityInput *sesv2.DeleteEmailIdentityInput
+	Opts                []func(*sesv2.Options)
+} {
+	return ms.deleteIdentityInput
+}
+
+func (ms *MockSesV2Client) SetDeleteEmailIdentityOutput(out *sesv2.DeleteEmailIdentityOutput, err error) {
+	ms.deleteIdentityResponse = struct {
+		out *sesv2.DeleteEmailIdentityOutput
 		err error
 	}{
 		out: out,
