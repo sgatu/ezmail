@@ -15,6 +15,7 @@ type SESClient interface {
 		optFns ...func(*sesv2.Options),
 	) (*sesv2.PutEmailIdentityMailFromAttributesOutput, error)
 	DeleteEmailIdentity(ctx context.Context, params *sesv2.DeleteEmailIdentityInput, optFns ...func(*sesv2.Options)) (*sesv2.DeleteEmailIdentityOutput, error)
+	GetEmailIdentity(ctx context.Context, params *sesv2.GetEmailIdentityInput, optFns ...func(*sesv2.Options)) (*sesv2.GetEmailIdentityOutput, error)
 }
 
 type AWSSesV2Client struct {

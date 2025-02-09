@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
@@ -79,4 +81,43 @@ func setDNSRecords(dkimTokens []string, domainInfo *domain.DomainInfo) {
 		Status:  domain.DNS_RECORD_STATUS_PENDING,
 	})
 	domainInfo.SetDnsRecords(records)
+}
+
+func (s *SESIdentityManager) RefreshIdentity(ctx context.Context, domainInfo *domain.DomainInfo) error {
+	identity, err := s.awsSesClient.GetEmailIdentity(ctx, &sesv2.GetEmailIdentityInput{
+		EmailIdentity: &domainInfo.DomainName,
+	}, func(o *sesv2.Options) { o.Region = domainInfo.Region })
+	if err != nil {
+		return err
+	}
+	dnsRecords, _ := domainInfo.GetDnsRecords()
+	for i, dnsRecord := range dnsRecords {
+		val := "invalid"
+		domainFormatted := fmt.Sprintf("%s.%s", dnsRecord.Name, domainInfo.DomainName)
+		switch dnsRecord.Type {
+		case "MX":
+			result, err := net.DefaultResolver.LookupMX(ctx, domainFormatted)
+			if err == nil {
+				val = fmt.Sprintf("%d %s", result[0].Pref, strings.TrimSuffix(result[0].Host, "."))
+			}
+		case "TXT":
+			result, err := net.DefaultResolver.LookupTXT(ctx, domainFormatted)
+			if err == nil {
+				val = result[0]
+			}
+		case "CNAME":
+			result, err := net.DefaultResolver.LookupCNAME(ctx, domainFormatted)
+			if err == nil {
+				val = strings.TrimSuffix(result, ".")
+			}
+		}
+		if val == dnsRecord.Value {
+			dnsRecords[i].Status = domain.DNS_RECORD_STATUS_VERIFIED
+		}
+	}
+	if identity.VerifiedForSendingStatus {
+		domainInfo.Validated = true
+	}
+	domainInfo.SetDnsRecords(dnsRecords)
+	return nil
 }

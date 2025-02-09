@@ -27,6 +27,10 @@ func upsert(
 	if affectedRows != 0 {
 		return nil
 	}
+	res, err := db.NewSelect().Model(model).WherePK().Count(ctx)
+	if err == nil && res >= 1 {
+		return nil
+	}
 	_, err = db.NewInsert().Model(model).Exec(ctx)
 	if err != nil {
 		return err

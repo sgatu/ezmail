@@ -24,6 +24,7 @@ func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 	common.RegisterEndpoint(router.Get, "/domain/{id}", domHandler.getDomain, "Get a domain identified by {id}")
 	common.RegisterEndpoint(router.Get, "/domain", domHandler.getDomains, "Get all domains")
 	common.RegisterEndpoint(router.Delete, "/domain/{id}", domHandler.deleteDomain, "Soft deletes a domain (mark it as deleted in db and does not delete it from aws)")
+	common.RegisterEndpoint(router.Post, "/domain/{id}/refresh", domHandler.refreshDomain, "Syncs domain status with AWS and DNS")
 }
 
 type domainHandler struct {
@@ -50,6 +51,18 @@ type domainResponse struct {
 	Records   []domainRecordResponse `json:"records"`
 	Id        int64                  `json:"id,string"`
 	Validated bool                   `json:"validated"`
+}
+
+func getDomainId(r *http.Request) (int64, bool) {
+	domainId := chi.URLParam(r, "id")
+	if domainId == "" {
+		return 0, false
+	}
+	domainIdInt, err := strconv.ParseInt(domainId, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return domainIdInt, true
 }
 
 func getCreateDomainResponse(di *domain.DomainInfo) *domainResponse {
@@ -129,17 +142,12 @@ func (dh *domainHandler) getDomains(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
-	domainId := chi.URLParam(r, "id")
-	if domainId == "" {
+	domainId, ok := getDomainId(r)
+	if !ok {
 		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
-	domainIdInt, err := strconv.ParseInt(domainId, 10, 64)
-	if err != nil {
-		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
-		return
-	}
-	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
+	dom, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainId)
 	if err != nil {
 		common.ErrorResponse(err, w)
 		return
@@ -148,24 +156,19 @@ func (dh *domainHandler) getDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dh *domainHandler) deleteDomain(w http.ResponseWriter, r *http.Request) {
-	domainId := chi.URLParam(r, "id")
-	if domainId == "" {
-		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
-		return
-	}
-	domainIdInt, err := strconv.ParseInt(domainId, 10, 64)
-	if err != nil {
+	domainId, ok := getDomainId(r)
+	if !ok {
 		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
 		return
 	}
 	fullDeleteStr := r.URL.Query().Get("full")
 
-	theDomain, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainIdInt)
+	theDomain, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainId)
 	if err != nil {
 		common.ErrorResponse(err, w)
 		return
 	}
-	err = dh.domainInfoRepository.DeleteDomain(r.Context(), domainIdInt)
+	err = dh.domainInfoRepository.DeleteDomain(r.Context(), domainId)
 	if err != nil {
 		common.ErrorResponse(err, w)
 		return
@@ -176,6 +179,28 @@ func (dh *domainHandler) deleteDomain(w http.ResponseWriter, r *http.Request) {
 			common.ErrorResponse(err, w)
 			return
 		}
+	}
+	common.OkOperation(w)
+}
+
+func (dh *domainHandler) refreshDomain(w http.ResponseWriter, r *http.Request) {
+	domainId, ok := getDomainId(r)
+	if !ok {
+		common.ErrorResponse(common.EntityNotFoundError("domain"), w)
+		return
+	}
+	di, err := dh.domainInfoRepository.GetDomainInfoById(r.Context(), domainId)
+	if err != nil {
+		common.ErrorResponse(err, w)
+		return
+	}
+	err = dh.identityManager.RefreshIdentity(r.Context(), di)
+	if err != nil {
+		common.ErrorResponse(err, w)
+	}
+	err = dh.domainInfoRepository.Save(r.Context(), di)
+	if err != nil {
+		common.ErrorResponse(err, w)
 	}
 	common.OkOperation(w)
 }

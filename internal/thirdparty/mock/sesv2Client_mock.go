@@ -23,6 +23,10 @@ type MockSesV2Client struct {
 		out *sesv2.DeleteEmailIdentityOutput
 		err error
 	}
+	getIdentityResponse struct {
+		out *sesv2.GetEmailIdentityOutput
+		err error
+	}
 	sendLastInput struct {
 		Ctx            context.Context
 		SendEmailInput *sesv2.SendEmailInput
@@ -43,11 +47,17 @@ type MockSesV2Client struct {
 		DeleteIdentityInput *sesv2.DeleteEmailIdentityInput
 		Opts                []func(*sesv2.Options)
 	}
+	getIdentityInput struct {
+		Ctx              context.Context
+		GetIdentityInput *sesv2.GetEmailIdentityInput
+		Opts             []func(*sesv2.Options)
+	}
 
 	SendCalls                               int
 	CreateIdentityCalls                     int
 	PutIdentityEmailMailFromAttributesCalls int
 	DeleteIdentityCalls                     int
+	GetIdentityCalls                        int
 }
 
 func (ms *MockSesV2Client) SendEmail(ctx context.Context, params *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
@@ -64,6 +74,20 @@ func (ms *MockSesV2Client) SendEmail(ctx context.Context, params *sesv2.SendEmai
 	return ms.sendResponse.out, ms.sendResponse.err
 }
 
+func (ms *MockSesV2Client) GetEmailIdentity(ctx context.Context, params *sesv2.GetEmailIdentityInput, optFns ...func(*sesv2.Options)) (*sesv2.GetEmailIdentityOutput, error) {
+	ms.getIdentityInput = struct {
+		Ctx              context.Context
+		GetIdentityInput *sesv2.GetEmailIdentityInput
+		Opts             []func(*sesv2.Options)
+	}{
+		Ctx:              ctx,
+		GetIdentityInput: params,
+		Opts:             optFns,
+	}
+	ms.GetIdentityCalls++
+	return ms.getIdentityResponse.out, ms.getIdentityResponse.err
+}
+
 func (ms *MockSesV2Client) SetSendEmailResponse(Out *sesv2.SendEmailOutput, err error) {
 	ms.sendResponse = struct {
 		out *sesv2.SendEmailOutput
@@ -72,6 +96,24 @@ func (ms *MockSesV2Client) SetSendEmailResponse(Out *sesv2.SendEmailOutput, err 
 		out: Out,
 		err: err,
 	}
+}
+
+func (ms *MockSesV2Client) SetGetIdentityResponse(out *sesv2.GetEmailIdentityOutput, err error) {
+	ms.getIdentityResponse = struct {
+		out *sesv2.GetEmailIdentityOutput
+		err error
+	}{
+		out: out,
+		err: err,
+	}
+}
+
+func (ms *MockSesV2Client) GetLastGetIdentityInput() struct {
+	Ctx              context.Context
+	GetIdentityInput *sesv2.GetEmailIdentityInput
+	Opts             []func(*sesv2.Options)
+} {
+	return ms.getIdentityInput
 }
 
 func (ms *MockSesV2Client) GetLastSendParams() struct {
