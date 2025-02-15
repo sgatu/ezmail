@@ -9,6 +9,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
+	"github.com/sgatu/ezmail/internal/domain/models/events"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/handlers/common"
@@ -19,6 +20,7 @@ func RegisterDomainHandler(ctx *internal_http.AppContext, router chi.Router) {
 		identityManager:      ctx.IdentityManager,
 		domainInfoRepository: ctx.DomainInfoRepository,
 		snowflakeNode:        ctx.SnowflakeNode,
+		ebus:                 ctx.EventsBus,
 	}
 	common.RegisterEndpoint(router.Post, "/domain", domHandler.createDomain, "Register new domain in the system")
 	common.RegisterEndpoint(router.Get, "/domain/{id}", domHandler.getDomain, "Get a domain identified by {id}")
@@ -31,6 +33,7 @@ type domainHandler struct {
 	identityManager      services.IdentityManager
 	domainInfoRepository domain.DomainInfoRepository
 	snowflakeNode        *snowflake.Node
+	ebus                 events.EventBus
 }
 
 type createDomainRequest struct {
@@ -125,6 +128,7 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(common.InternalServerError(err), w)
 		return
 	}
+	dh.ebus.Push(r.Context(), events.NewDomainRegisterEvent(domainInfo.Id))
 	common.ReturnReponse(getCreateDomainResponse(domainInfo), 201, w)
 }
 

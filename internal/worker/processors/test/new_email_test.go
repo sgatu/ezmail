@@ -18,7 +18,7 @@ func getNewEmailProcessor() ([]string, *processors.NewEmailProcessor, *processor
 		EmailStoreService:   mocks_services.MockEmailStoreService(),
 		EmailerService:      mocks_services.MockEmailer(),
 		ScheduledEventsRepo: mocks_models.MockScheduledEventRepository(),
-		Rc:                  nil,
+		ResC:                nil,
 	}
 	initMethod := processors.InitNewEmailProcessor()
 	msgTypes, proc := initMethod(&rx)

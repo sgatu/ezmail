@@ -25,13 +25,19 @@ type RescheduleConfig struct {
 	Retries     int8
 	RetryTimeMs int64
 }
+type RefreshConfig struct {
+	MaxRetries    int64
+	RetryDelaySec int64
+}
+
 type RunningContext struct {
 	EventBus            events.EventBus
 	EmailStoreService   services.EmailStoreService
 	EmailerService      services.Emailer
 	ScheduledEventsRepo events.ScheduledEventRepository
 	BusReader           events.BusReader
-	Rc                  *RescheduleConfig
+	ResC                *RescheduleConfig
+	RefC                *RefreshConfig
 }
 
 func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
@@ -74,22 +80,8 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	if scheduleKey != "" {
 		scheduledEvRepo = redis.NewRedisScheduledEventRepository(redisCli, scheduleKey)
 	}
-	rescheduleRetries := os.Getenv("RESCHEDULE_RETRIES")
-	rescheduleTimeMs := os.Getenv("RESCHEDULE_TIME_MS")
-	var rescheduleConfig *RescheduleConfig = nil
-	if rescheduleRetries != "" && rescheduleTimeMs != "" {
-		rsRetries, errRetries := strconv.ParseInt(rescheduleRetries, 10, 8)
-		rsTime, errTime := strconv.ParseInt(rescheduleTimeMs, 10, 64)
-		if errRetries == nil && errTime == nil {
-			rescheduleConfig = &RescheduleConfig{
-				Retries:     int8(rsRetries),
-				RetryTimeMs: rsTime,
-			}
-		} else {
-			slog.Warn("Invalid reschedule configuration")
-		}
-
-	}
+	rescheduleConfig := getEmailRescheduleConfig()
+	refreshConfig := getDomainRefreshConfig()
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		panic(err)
@@ -110,9 +102,53 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 				&thirdparty.AWSSesV2Client{Client: sesClient},
 				snowflakeNode,
 			),
-			Rc:        rescheduleConfig,
+			ResC:      rescheduleConfig,
+			RefC:      refreshConfig,
 			BusReader: eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
 		}, func() {
 			redisCli.Close()
 		}, nil
+}
+
+func getEmailRescheduleConfig() (rescheduleConfig *RescheduleConfig) {
+	rescheduleRetries := os.Getenv("RESCHEDULE_RETRIES")
+	rescheduleTimeMs := os.Getenv("RESCHEDULE_TIME_MS")
+	if rescheduleRetries != "" && rescheduleTimeMs != "" {
+		rsRetries, errRetries := strconv.ParseInt(rescheduleRetries, 10, 8)
+		rsTime, errTime := strconv.ParseInt(rescheduleTimeMs, 10, 64)
+		if errRetries == nil && errTime == nil {
+			rescheduleConfig = &RescheduleConfig{
+				Retries:     int8(rsRetries),
+				RetryTimeMs: rsTime,
+			}
+		} else {
+			slog.Warn("Invalid reschedule configuration")
+		}
+
+	}
+	return
+}
+
+func getDomainRefreshConfig() (refreshConfig *RefreshConfig) {
+	// defaults to about 6h checks every 30m
+	refreshConfig = &RefreshConfig{
+		MaxRetries:    12,
+		RetryDelaySec: 1800,
+	}
+	maxRetriesConf := os.Getenv("REFRESH_DOMAIN_RETRIES")
+	retryDelayConf := os.Getenv("REFRESH_DOMAIN_RETRY_SEC_BETWEEN")
+	if maxRetriesConf != "" {
+		rsMRetry, errRetries := strconv.ParseInt(maxRetriesConf, 10, 64)
+		if errRetries == nil {
+			refreshConfig.MaxRetries = rsMRetry
+		}
+	}
+
+	if retryDelayConf != "" {
+		rsDelay, errDelay := strconv.ParseInt(retryDelayConf, 10, 64)
+		if errDelay == nil {
+			refreshConfig.RetryDelaySec = rsDelay
+		}
+	}
+	return
 }

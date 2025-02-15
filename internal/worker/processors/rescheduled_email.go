@@ -17,7 +17,7 @@ func InitRescheduledEmailProcessor() func(rCtx *RunningContext) ([]string, Proce
 			emailStoreService: rCtx.EmailStoreService,
 			emailer:           rCtx.EmailerService,
 			schEvtRepo:        rCtx.ScheduledEventsRepo,
-			rc:                rCtx.Rc,
+			rc:                rCtx.ResC,
 		}
 	}
 }

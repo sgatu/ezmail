@@ -28,8 +28,10 @@ type EventWrapper struct {
 }
 
 const (
-	EVENT_TYPE_NEW_EMAIL         = "new_email"
-	EVENT_TYPE_RESCHEDULED_EMAIL = "rescheduled_email"
+	EVENT_TYPE_NEW_EMAIL             = "new_email"
+	EVENT_TYPE_RESCHEDULED_EMAIL     = "rescheduled_email"
+	EVENT_TYPE_DOMAIN_REGISTER       = "domain_register"
+	EVENT_TYPE_REFRESH_DOMAIN_STATUS = "refresh_domain_status"
 )
 
 type ScheduledEventRepository interface {

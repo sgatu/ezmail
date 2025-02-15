@@ -17,7 +17,7 @@ func InitNewEmailProcessor() func(rCtx *RunningContext) ([]string, Processor) {
 			emailStoreService: rCtx.EmailStoreService,
 			emailer:           rCtx.EmailerService,
 			schEvtRepo:        rCtx.ScheduledEventsRepo,
-			rc:                rCtx.Rc,
+			rc:                rCtx.ResC,
 		}
 	}
 }
