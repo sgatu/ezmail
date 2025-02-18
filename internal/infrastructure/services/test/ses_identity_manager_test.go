@@ -7,9 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
-	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
-	"github.com/sgatu/ezmail/internal/domain/models/mocks_models"
 	"github.com/sgatu/ezmail/internal/infrastructure/services"
 	"github.com/sgatu/ezmail/internal/thirdparty/mock"
 )
@@ -23,9 +21,7 @@ func getDomainInfo() *domain.DomainInfo {
 
 func TestCreateIdentity_ErrorCreate(t *testing.T) {
 	client := mock.MockSesV2Client{}
-	domRepo := mocks_models.MockDomainRepository()
-	sn, _ := snowflake.NewNode(1)
-	im := services.NewSESIdentityManager(domRepo, &client, sn)
+	im := services.NewSESIdentityManager(&client)
 	errCreate := fmt.Errorf("err")
 	client.SetCreateEmailIdentityResponse(nil, errCreate)
 	err := im.CreateIdentity(context.TODO(), getDomainInfo())
@@ -36,9 +32,7 @@ func TestCreateIdentity_ErrorCreate(t *testing.T) {
 
 func TestCreateIdentity_ErrorPut(t *testing.T) {
 	client := mock.MockSesV2Client{}
-	domRepo := mocks_models.MockDomainRepository()
-	sn, _ := snowflake.NewNode(1)
-	im := services.NewSESIdentityManager(domRepo, &client, sn)
+	im := services.NewSESIdentityManager(&client)
 	errPut := fmt.Errorf("err")
 	client.SetCreateEmailIdentityResponse(&sesv2.CreateEmailIdentityOutput{}, nil)
 	client.SetPutEmailIdentityMailFromAttributesResponse(nil, errPut)
@@ -53,9 +47,7 @@ func TestCreateIdentity_ErrorPut(t *testing.T) {
 
 func TestCreateIdentity_Ok(t *testing.T) {
 	client := mock.MockSesV2Client{}
-	domRepo := mocks_models.MockDomainRepository()
-	sn, _ := snowflake.NewNode(1)
-	im := services.NewSESIdentityManager(domRepo, &client, sn)
+	im := services.NewSESIdentityManager(&client)
 	client.SetCreateEmailIdentityResponse(&sesv2.CreateEmailIdentityOutput{
 		DkimAttributes: &types.DkimAttributes{
 			Tokens: []string{"tok1", "tok2", "tok3"},
@@ -95,9 +87,7 @@ func TestCreateIdentity_Ok(t *testing.T) {
 
 func TestDeleteIdentity_Error(t *testing.T) {
 	client := mock.MockSesV2Client{}
-	domRepo := mocks_models.MockDomainRepository()
-	sn, _ := snowflake.NewNode(1)
-	im := services.NewSESIdentityManager(domRepo, &client, sn)
+	im := services.NewSESIdentityManager(&client)
 	errDelete := fmt.Errorf("err")
 	client.SetDeleteEmailIdentityOutput(nil, errDelete)
 	err := im.DeleteIdentity(context.TODO(), getDomainInfo())
@@ -108,9 +98,7 @@ func TestDeleteIdentity_Error(t *testing.T) {
 
 func TestDeleteIdentity_Ok(t *testing.T) {
 	client := mock.MockSesV2Client{}
-	domRepo := mocks_models.MockDomainRepository()
-	sn, _ := snowflake.NewNode(1)
-	im := services.NewSESIdentityManager(domRepo, &client, sn)
+	im := services.NewSESIdentityManager(&client)
 	client.SetDeleteEmailIdentityOutput(nil, nil)
 	err := im.DeleteIdentity(context.TODO(), getDomainInfo())
 	if err != nil {

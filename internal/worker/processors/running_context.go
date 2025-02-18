@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/bwmarrin/snowflake"
+	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/domain/models/events"
 	"github.com/sgatu/ezmail/internal/domain/services"
 	"github.com/sgatu/ezmail/internal/infrastructure/eventbus"
@@ -31,13 +32,15 @@ type RefreshConfig struct {
 }
 
 type RunningContext struct {
-	EventBus            events.EventBus
-	EmailStoreService   services.EmailStoreService
-	EmailerService      services.Emailer
-	ScheduledEventsRepo events.ScheduledEventRepository
-	BusReader           events.BusReader
-	ResC                *RescheduleConfig
-	RefC                *RefreshConfig
+	EventBus             events.EventBus
+	DomainInfoRepository domain.DomainInfoRepository
+	IdentityManager      services.IdentityManager
+	EmailStoreService    services.EmailStoreService
+	EmailerService       services.Emailer
+	ScheduledEventsRepo  events.ScheduledEventRepository
+	BusReader            events.BusReader
+	ResC                 *RescheduleConfig
+	RefC                 *RefreshConfig
 }
 
 func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
@@ -102,9 +105,11 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 				&thirdparty.AWSSesV2Client{Client: sesClient},
 				snowflakeNode,
 			),
-			ResC:      rescheduleConfig,
-			RefC:      refreshConfig,
-			BusReader: eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
+			ResC:                 rescheduleConfig,
+			RefC:                 refreshConfig,
+			BusReader:            eventbus.NewRedisEventsReader(redisCli, eventsTopic, "mainReader", false),
+			DomainInfoRepository: domainRepo,
+			IdentityManager:      infra_services.NewSESIdentityManager(thirdparty.AWSSesV2Client{Client: sesClient}),
 		}, func() {
 			redisCli.Close()
 		}, nil

@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
-	"github.com/bwmarrin/snowflake"
 	"github.com/sgatu/ezmail/internal/domain/models/domain"
 	"github.com/sgatu/ezmail/internal/thirdparty"
 )
@@ -20,7 +19,7 @@ type SESIdentityManager struct {
 	awsSesClient thirdparty.SESClient
 }
 
-func NewSESIdentityManager(domainRepository domain.DomainInfoRepository, sesClient thirdparty.SESClient, snowflakeNode *snowflake.Node) *SESIdentityManager {
+func NewSESIdentityManager(sesClient thirdparty.SESClient) *SESIdentityManager {
 	return &SESIdentityManager{
 		awsSesClient: sesClient,
 	}

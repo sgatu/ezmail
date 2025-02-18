@@ -95,9 +95,8 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	return &AppContext{
 			DomainInfoRepository: domainInfoRepository,
 			IdentityManager: infra_services.NewSESIdentityManager(
-				domainInfoRepository,
 				thirdparty.AWSSesV2Client{Client: sesClient},
-				snowflakeNode),
+			),
 			SnowflakeNode:      snowflakeNode,
 			EmailStoreService:  emailService,
 			TemplateRepository: templateRepository,
