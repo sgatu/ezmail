@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 _build-api:
 	@rm -rf ./dist/api
 	@mkdir ./dist/api
@@ -16,10 +17,10 @@ build-executor:
 	@$(MAKE) -s _build-executor
 run:
 	@$(MAKE) -s _build-api
-	@cd ./dist/api/ && ./ezmail
+	@cd ./dist/api/ && export $$(grep -v '^#' .env | xargs) && ./ezmail
 run-exec:
 	@$(MAKE) -s _build-executor
-	@cd ./dist/executor && ./executor
+	@cd ./dist/executor && export $$(grep -v '^#' .env | xargs) && ./executor
 test:
 	go test ./.../test -count=1 -coverpkg=./... -coverprofile=/tmp/cover.out
 cover:

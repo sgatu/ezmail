@@ -45,7 +45,11 @@ func (repo *RedisScheduledEventRepository) GetNext(ctx context.Context) (events.
 	if nextOne == nil {
 		return nil, nil
 	}
-	return events.RetrieveTypedEvent([]byte(*nextOne))
+	evt, err := events.RetrieveTypedEvent([]byte(*nextOne))
+	if err == nil {
+		slog.Info(fmt.Sprintf("Found scheduled event %s, at %s", evt.GetType(), time.Now().UTC()))
+	}
+	return evt, err
 }
 
 func (repo *RedisScheduledEventRepository) RemoveNext(ctx context.Context) error {
@@ -66,7 +70,7 @@ func (repo *RedisScheduledEventRepository) getNextOne(ctx context.Context) (*str
 		Max:   strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Count: 1,
 	})
-	slog.Info(fmt.Sprintf("Checking next evt at %s", strconv.FormatInt(time.Now().UTC().Unix(), 10)))
+	slog.Debug(fmt.Sprintf("Checking next evt at %s", strconv.FormatInt(time.Now().UTC().Unix(), 10)))
 	if result.Err() != nil {
 		return nil, result.Err()
 	}

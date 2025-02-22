@@ -52,6 +52,10 @@ func RetrieveTypedEvent(eventData []byte) (Event, error) {
 		resultEvent = &NewEmailEvent{}
 	case EVENT_TYPE_RESCHEDULED_EMAIL:
 		resultEvent = &RescheduledEmailEvent{}
+	case EVENT_TYPE_DOMAIN_REGISTER:
+		resultEvent = &DomainRegisterEvent{}
+	case EVENT_TYPE_REFRESH_DOMAIN_STATUS:
+		resultEvent = &RefreshDomainEvent{}
 	default:
 		err = fmt.Errorf("could not parse event - unknown type")
 	}

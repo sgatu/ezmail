@@ -33,6 +33,7 @@ func (ndrp *RefreshDomainProcessor) Process(ctx context.Context, evt events.Even
 		slog.Warn(fmt.Sprintf("Invalid event received by RefreshDomainProcessor. Type = %s", evt.GetType()))
 		return nil
 	}
+	slog.Info(fmt.Sprintf("Refreshing domain status for id: %d", evtP.DomainId))
 	di, err := ndrp.diRepository.GetDomainInfoById(ctx, evtP.DomainId)
 	if err != nil {
 		slog.Warn(fmt.Sprintf("Could not retrieve domain info by id %d, RefreshDomainProcessor", evtP.DomainId))

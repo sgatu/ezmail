@@ -29,10 +29,12 @@ func (ndrp *NewDomainRegisterProcessor) Process(ctx context.Context, evt events.
 		slog.Warn(fmt.Sprintf("Invalid event received by NewDomainRegisterProcessor. Type = %s", evt.GetType()))
 		return nil
 	}
+	slog.Info(fmt.Sprintf("Processing event new domain register with id: %d", evtP.DomainId))
+	schTime := time.Now().Add(time.Duration(ndrp.refC.RetryDelaySec) * time.Second).UTC()
+	refreshEvt := events.NewRefreshDomainEvent(evtP.DomainId, ndrp.refC.MaxRetries, ndrp.refC.RetryDelaySec)
+	fmt.Printf("%+v ---- %+v\n", schTime, refreshEvt)
 	ndrp.sch.Push(
-		ctx,
-		time.Now().Add(time.Duration(ndrp.refC.RetryDelaySec)*time.Second).UTC(),
-		events.NewRefreshDomainEvent(evtP.DomainId, ndrp.refC.MaxRetries, ndrp.refC.RetryDelaySec),
+		ctx, schTime, refreshEvt,
 	)
 	return nil
 }

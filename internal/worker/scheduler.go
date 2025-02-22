@@ -2,8 +2,10 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -29,8 +31,8 @@ func NewScheduler(repo events.ScheduledEventRepository, evBus events.EventBus, w
 func (sched *Scheduler) Run() {
 	sched.running = true
 	sched.wg.Add(1)
+	slog.Info("Starting scheduler")
 	go func() {
-		slog.Info("Starting scheduler...")
 		var cancel context.CancelFunc
 		var ctx context.Context
 		for sched.running {
@@ -41,7 +43,9 @@ func (sched *Scheduler) Run() {
 			ctx, cancel = context.WithTimeout(context.Background(), 1000*time.Millisecond)
 			next, err := sched.schedRepo.GetNext(ctx)
 			if err != nil {
-				slog.Warn(fmt.Errorf("could not get next scheduled event due to %w", err).Error())
+				if !errors.Is(err, os.ErrDeadlineExceeded) {
+					slog.Warn(fmt.Errorf("could not get next scheduled event due to %w", err).Error())
+				}
 				continue
 			}
 			if next == nil {
@@ -59,6 +63,6 @@ func (sched *Scheduler) Run() {
 }
 
 func (sched *Scheduler) Stop() {
-	slog.Info("Shutting down scheduler...")
+	slog.Info("Shutting down scheduler")
 	sched.running = false
 }

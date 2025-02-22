@@ -2,15 +2,17 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/sgatu/ezmail/internal/worker/processors"
 )
 
-type executor struct {
+type Executor struct {
 	wg         *sync.WaitGroup
 	runningCtx *processors.RunningContext
 	processors map[string][]processors.Processor
@@ -21,8 +23,8 @@ func NewExecutor(
 	runningCtx *processors.RunningContext,
 	wg *sync.WaitGroup,
 	processorsList ...func(rCtx *processors.RunningContext) ([]string, processors.Processor),
-) *executor {
-	e := executor{
+) *Executor {
+	e := Executor{
 		runningCtx: runningCtx,
 		processors: make(map[string][]processors.Processor),
 		running:    true,
@@ -41,9 +43,10 @@ func NewExecutor(
 	return &e
 }
 
-func (e *executor) Run() {
+func (e *Executor) Run() {
 	e.running = true
 	e.wg.Add(1)
+	slog.Info("Starting executor")
 	go func() {
 		anyProcessed := true
 		var cancel context.CancelFunc
@@ -53,7 +56,7 @@ func (e *executor) Run() {
 				cancel()
 			}
 			if anyProcessed {
-				time.Sleep(10040 * time.Millisecond)
+				time.Sleep(1000 * time.Millisecond)
 			} else {
 				slog.Debug("Looking for messages, none in last loop, 5s sleep")
 				time.Sleep(5000 * time.Millisecond)
@@ -62,7 +65,9 @@ func (e *executor) Run() {
 			ctx, cancel = context.WithTimeout(context.Background(), 1500*time.Millisecond)
 			msgs, err := e.runningCtx.BusReader.Read(ctx, 1)
 			if err != nil {
-				slog.Warn(fmt.Errorf("could not retrieve messages from queue due to %w", err).Error())
+				if !errors.Is(err, os.ErrDeadlineExceeded) {
+					slog.Warn(fmt.Errorf("could not retrieve messages from queue due to %w", err).Error())
+				}
 				continue
 			}
 			if len(msgs) == 0 {
@@ -71,6 +76,9 @@ func (e *executor) Run() {
 			eventWrapper := msgs[0]
 			processors, ok := e.processors[eventWrapper.Event.GetType()]
 			if !ok {
+				slog.Warn(fmt.Sprintf("No processor found for %s\n", eventWrapper.Event.GetType()))
+				// commit and ignore, no point on retrying the same event
+				e.runningCtx.BusReader.Commit(ctx, eventWrapper.Id)
 				continue
 			}
 			anyProcessed = true
@@ -101,7 +109,7 @@ func (e *executor) Run() {
 	}()
 }
 
-func (e *executor) Stop() {
-	slog.Info("Shutting down executor...")
+func (e *Executor) Stop() {
+	slog.Info("Shutting down executor")
 	e.running = false
 }

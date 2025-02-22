@@ -43,7 +43,7 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	nodeIdStr := os.Getenv("NODE_ID")
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
-		nodeId = rand.Int63()
+		nodeId = rand.Int63() % 1024
 		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId))
 	}
 	snowflakeNode, err := snowflake.NewNode(nodeId)
