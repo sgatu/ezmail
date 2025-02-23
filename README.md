@@ -49,6 +49,15 @@ This will create a binary in folder dist/executor called **executor**
 
 Info: Both RESCHEDULE_RETRIES and RESCHEDULE_TIME_MS must be set to enable email retrying 
 
+
+## Requirements
+
+To be able to run the api and the executor you will require a MySQL database and a Redis instance.
+
+- The MySQL database is used to store the required domain information, templates and emails.
+- The Redis instance is used both as a event queue and to schedule future events, as for example scheduling an email for later.
+
+
 ## API Documentation
 
 
@@ -139,3 +148,19 @@ Email fields follow the RFC 5322 format and can include a display-name. Example:
 **bcc**, **reply_to** and **when** fields are optional
 
 Using the when field you can schedule an email for later, dates are UTC
+
+
+
+## How to use it?
+
+- Build both binaries
+- Run both binaries
+- Call the api to register your domain
+    - The domain registration will return a list of DNS records you should create in order to start using the domain in AWS SES
+    - Wait for the domain to get validated (you can manually trigger the status refresh using the designated endpoint)
+- Once the domain is validated you can start sending emails, first step would be to create a template and next you should be able to send an email&ast;
+
+
+&ast; Keep in mind that once the domain is validated you will still need to request production access(disable sandbox) in your AWS console.
+
+
