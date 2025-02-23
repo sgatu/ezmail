@@ -9,7 +9,45 @@ The project consists of two main components:
 
 This solution streamlines email operations with AWS SES, reducing complexity and improving efficiency.
 
+## How to build
 
+### To build the api binary execute
+
+```bash
+make build-api
+```
+
+This will create a binary in folder dist/api called **ezmail**
+
+
+### To build the event processor execute
+
+```bash
+make build-executor
+```
+
+This will create a binary in folder dist/executor called **executor**
+
+
+## Environment Variables
+
+| Variable                           | Description                                                      | Required | Default                               |
+|------------------------------------|------------------------------------------------------------------|----------|---------------------------------------|
+| `MYSQL_DSN`                        | MySQL connection string                                          | Yes      | -                                     |
+| `REDIS`                            | Redis server address                                             | Yes      | `localhost:6379`                      |
+| `PORT`                             | API server port                                                  | No       | `3000`                                |
+| `NODE_ID`                          | Unique node identifier, used for snowflake ID generation         | No       | `Random generated between 0 and 1023` |
+| `AUTH_TOKEN`                       | API authentication token                                         | No       | -                                     |
+| `REDIS_EVENTS_MAX_LEN`             | Max length for Redis events queue                                | No       | `2500`                                |
+| `EVENTS_TOPIC`                     | Topic for email events                                           | No       | `topic:email.events`                  |
+| `SCHEDULING_KEY`                   | Key for scheduled tasks queue, if not set scheduling is disabled | No       | -                                     |
+| `RESCHEDULE_RETRIES`               | Number of retry attempts for failed emails                       | No       | -                                     |
+| `RESCHEDULE_TIME_MS`               | Time in milliseconds between retries                             | No       | -                                     |
+| `LOG_LEVEL`                        | Logging level (e.g., INFO)                                       | No       | `INFO`                                |
+| `REFRESH_DOMAIN_RETRIES`           | Number of retries for domain refresh                             | No       | `12`                                  |
+| `REFRESH_DOMAIN_RETRY_SEC_BETWEEN` | Time in seconds between domain refresh attempts                  | No       | `1800`                                |
+
+Info: Both RESCHEDULE_RETRIES and RESCHEDULE_TIME_MS must be set to enable email retrying 
 
 ## API Documentation
 
@@ -27,7 +65,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 #### Domains
 
 | Method | Endpoint                        | Description                        |
-| ------ | ------------------------------- | ---------------------------------- |
+| ------ | ------------------------------ | ---------------------------------- |
 | GET    | `/domain`                       | Retrieve all domains               |
 | GET    | `/domain/{domain_id}`           | Retrieve a single domain           |
 | POST   | `/domain`                       | Create a new domain                |
@@ -93,11 +131,10 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 }
 ```
 
-Email fields follow the RFC 5322 format and can include a display-name:
-Example:
+Email fields follow the RFC 5322 format and can include a display-name. Example:
 
-- name@domain.com -> email without a display-name
-- Name Surname &lt;name@domain.com&gt; -> email with a display-name
+- name@domain.com : email without a display-name
+- Name Surname &lt;name@domain.com&gt; : email with a display-name
 
 **bcc**, **reply_to** and **when** fields are optional
 
