@@ -28,6 +28,12 @@ Content-Type: application/json
 
 ###
 
+# Refresh domain
+POST {{host}}/domain/{{domain_id}}/refresh HTTP/1.1
+Authorization: {{authorization}}
+
+###
+
 # Delete domain
 DELETE {{host}}/domain/{{domain_id}}?full=true HTTP/1.1
 Authorization: {{authorization}}
