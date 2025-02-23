@@ -58,6 +58,8 @@ To be able to run the api and the executor you will require a MySQL database and
 - The Redis instance is used both as a event queue and to schedule future events, as for example scheduling an email for later.
 
 
+**Important: The running environment will also require AWS permissions to be able to use the SES service.**
+
 ## API Documentation
 
 
