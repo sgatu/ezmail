@@ -154,7 +154,9 @@ Using the when field you can schedule an email for later, dates are UTC
 ## How to use it?
 
 - Build both binaries
-- Run both binaries
+- Start the required services (MySQL and Redis)
+- (Only once) Setup MySQL db schema (you can find it in .dev folder)
+- Run both binaries (setup env variables first)
 - Call the api to register your domain
     - The domain registration will return a list of DNS records you should create in order to start using the domain in AWS SES
     - Wait for the domain to get validated (you can manually trigger the status refresh using the designated endpoint)
