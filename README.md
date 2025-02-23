@@ -13,15 +13,10 @@ This solution streamlines email operations with AWS SES, reducing complexity and
 
 ## API Documentation
 
-### Base URL
-
-```
-http://localhost:3000
-```
 
 ### Authentication
 
-All requests require an `Authorization` header with a Bearer token:
+If AUTH_TOKEN env variable is defined then all requests require an `Authorization` header with a Bearer token:
 
 ```
 Authorization: Bearer YOUR_ACCESS_TOKEN
@@ -31,13 +26,13 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 #### Domains
 
-| Method | Endpoint                        | Description              |
-| ------ | ------------------------------- | ------------------------ |
-| GET    | `/domain`                       | Retrieve all domains     |
-| GET    | `/domain/{domain_id}`           | Retrieve a single domain |
-| POST   | `/domain`                       | Create a new domain      |
-| POST   | `/domain/{domain_id}/refresh`   | Refresh a domain         |
-| DELETE | `/domain/{domain_id}?full=true` | Delete a domain          |
+| Method | Endpoint                        | Description                        |
+| ------ | ------------------------------- | ---------------------------------- |
+| GET    | `/domain`                       | Retrieve all domains               |
+| GET    | `/domain/{domain_id}`           | Retrieve a single domain           |
+| POST   | `/domain`                       | Create a new domain                |
+| POST   | `/domain/{domain_id}/refresh`   | Refresh a domain status            |
+| DELETE | `/domain/{domain_id}?full=true` | Delete a domain                    |
 
 #### Create Domain
 
@@ -85,11 +80,25 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 ```json
 {
-    "to": "user@example.com",
+    "from": "Name <source@domain.tld>"
+    "to": [ "user@example.com" ],
     "template_id": "TEMPLATE_ID",
-    "variables": {
+    "context": {
         "FIRST_NAME": "John",
         "COMPANY_NAME": "Acme Inc."
-    }
+    },
+    "reply_to": "email_to_reply@domain.com",
+    "bcc": [ "bcc_email@somedomain.tld" ],
+    "when": "2024/10/12 20:37:00
 }
 ```
+
+Email fields follow the RFC 5322 format and can include a display-name:
+Example:
+
+- name@domain.com -> email without a display-name
+- Name Surname <name@domain.com> -> email with a display-name
+
+**bcc**, **reply_to** and **when** fields are optional
+
+Using the when field you can schedule an email for later, dates are UTC
