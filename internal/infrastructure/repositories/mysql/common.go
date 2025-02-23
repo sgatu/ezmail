@@ -13,20 +13,19 @@ func upsert(
 	ctx context.Context,
 	db *bun.DB,
 ) error {
-	slog.Info(fmt.Sprintf("Upserting %+v", model))
+	slog.Debug(fmt.Sprintf("Upserting %+v", model))
 	result, err := db.NewUpdate().Model(model).WherePK().ExcludeColumn("id", "created").Exec(ctx)
 	if err != nil {
-		slog.Info(fmt.Sprintf("Upserting err %+v", err))
 		return err
 	}
 	affectedRows, err := result.RowsAffected()
 	if err != nil {
-		slog.Info(fmt.Sprintf("Upserting err aff %+v", err))
 		return err
 	}
 	if affectedRows != 0 {
 		return nil
 	}
+	// necessary due to affectedRows = 0 if no field was changed
 	res, err := db.NewSelect().Model(model).WherePK().Count(ctx)
 	if err == nil && res >= 1 {
 		return nil

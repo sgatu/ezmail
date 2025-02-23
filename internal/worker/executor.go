@@ -46,7 +46,7 @@ func NewExecutor(
 func (e *Executor) Run() {
 	e.running = true
 	e.wg.Add(1)
-	slog.Info("Starting executor")
+	slog.Info("Starting executor", "Source", "Executor")
 	go func() {
 		anyProcessed := true
 		var cancel context.CancelFunc
@@ -58,7 +58,7 @@ func (e *Executor) Run() {
 			if anyProcessed {
 				time.Sleep(1000 * time.Millisecond)
 			} else {
-				slog.Debug("Looking for messages, none in last loop, 5s sleep")
+				slog.Debug("Looking for messages, none in last loop, 5s sleep", "Source", "Executor")
 				time.Sleep(5000 * time.Millisecond)
 			}
 			anyProcessed = false
@@ -66,7 +66,7 @@ func (e *Executor) Run() {
 			msgs, err := e.runningCtx.BusReader.Read(ctx, 1)
 			if err != nil {
 				if !errors.Is(err, os.ErrDeadlineExceeded) {
-					slog.Warn(fmt.Errorf("could not retrieve messages from queue due to %w", err).Error())
+					slog.Warn(fmt.Sprintf("Could not retrieve messages from queue due to %s", err), "Source", "Executor")
 				}
 				continue
 			}
@@ -76,7 +76,7 @@ func (e *Executor) Run() {
 			eventWrapper := msgs[0]
 			processors, ok := e.processors[eventWrapper.Event.GetType()]
 			if !ok {
-				slog.Warn(fmt.Sprintf("No processor found for %s\n", eventWrapper.Event.GetType()))
+				slog.Warn(fmt.Sprintf("No processor found for %s", eventWrapper.Event.GetType()), "Source", "Executor")
 				// commit and ignore, no point on retrying the same event
 				e.runningCtx.BusReader.Commit(ctx, eventWrapper.Id)
 				continue
@@ -87,7 +87,7 @@ func (e *Executor) Run() {
 			for _, proc := range processors {
 				err = proc.Process(ctx, eventWrapper.Event)
 				if err != nil {
-					slog.Warn(fmt.Sprintf("Failed to process event %s/%s due to %s", eventWrapper.Id, eventWrapper.Event.GetType(), err.Error()))
+					slog.Warn(fmt.Sprintf("Failed to process event %s/%s due to %s", eventWrapper.Id, eventWrapper.Event.GetType(), err.Error()), "Source", "Executor")
 					break
 				}
 				lastId = eventWrapper.Id
@@ -95,7 +95,7 @@ func (e *Executor) Run() {
 			if len(lastId) != 0 {
 				err = e.runningCtx.BusReader.Commit(ctx, lastId)
 				if err != nil {
-					slog.Error("Could not commit, closing executor")
+					slog.Error("Could not commit, closing executor", "Source", "Executor")
 					e.running = false
 				}
 			} else {
@@ -110,6 +110,6 @@ func (e *Executor) Run() {
 }
 
 func (e *Executor) Stop() {
-	slog.Info("Shutting down executor")
+	slog.Info("Shutting down executor", "Source", "Executor")
 	e.running = false
 }

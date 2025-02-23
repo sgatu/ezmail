@@ -26,13 +26,12 @@ type NewDomainRegisterProcessor struct {
 func (ndrp *NewDomainRegisterProcessor) Process(ctx context.Context, evt events.Event) error {
 	evtP, ok := evt.(*events.DomainRegisterEvent)
 	if !ok {
-		slog.Warn(fmt.Sprintf("Invalid event received by NewDomainRegisterProcessor. Type = %s", evt.GetType()))
+		slog.Warn(fmt.Sprintf("Invalid event received by NewDomainRegisterProcessor. Type = %s", evt.GetType()), "Source", "NewDomainRegisterProcessor")
 		return nil
 	}
-	slog.Info(fmt.Sprintf("Processing event new domain register with id: %d", evtP.DomainId))
+	slog.Info(fmt.Sprintf("Processing event new domain register with id: %d", evtP.DomainId), "Source", "NewDomainRegisterProcessor")
 	schTime := time.Now().Add(time.Duration(ndrp.refC.RetryDelaySec) * time.Second).UTC()
 	refreshEvt := events.NewRefreshDomainEvent(evtP.DomainId, ndrp.refC.MaxRetries, ndrp.refC.RetryDelaySec)
-	fmt.Printf("%+v ---- %+v\n", schTime, refreshEvt)
 	ndrp.sch.Push(
 		ctx, schTime, refreshEvt,
 	)

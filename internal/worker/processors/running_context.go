@@ -57,7 +57,7 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	maxLenEventsStr := os.Getenv("REDIS_EVENTS_MAX_LEN")
 	maxLenEvents, err := strconv.ParseInt(maxLenEventsStr, 10, 64)
 	if err != nil {
-		slog.Warn("Could not load redis max events, defaulting to 2500")
+		slog.Warn("Could not load redis max events, defaulting to 2500", "Source", "SetupRunningContext")
 		maxLenEvents = 2500
 	}
 	eventsTopic := os.Getenv("EVENTS_TOPIC")
@@ -69,7 +69,7 @@ func SetupRunningContext(db *bun.DB) (*RunningContext, func(), error) {
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
 		nodeId = rand.Int63() % 1024
-		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId))
+		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId), "Source", "SetupRunningContext")
 	}
 	snowflakeNode, err := snowflake.NewNode(nodeId)
 	if err != nil {
@@ -127,7 +127,7 @@ func getEmailRescheduleConfig() (rescheduleConfig *RescheduleConfig) {
 				RetryTimeMs: rsTime,
 			}
 		} else {
-			slog.Warn("Invalid reschedule configuration")
+			slog.Warn("Invalid reschedule configuration", "Source", "SetupRunningContext")
 		}
 
 	}

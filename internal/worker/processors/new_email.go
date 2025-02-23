@@ -33,7 +33,7 @@ type NewEmailProcessor struct {
 func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) error {
 	evtP, ok := evt.(*events.NewEmailEvent)
 	if !ok {
-		slog.Warn(fmt.Sprintf("Invalid event received by NewEmailProcessor. Type = %s", evt.GetType()))
+		slog.Warn(fmt.Sprintf("Invalid event received by NewEmailProcessor. Type = %s", evt.GetType()), "Source", "NewEmailProcessor")
 		return nil
 	}
 	email, err := nep.emailStoreService.PrepareEmail(ctx, evtP.Id)
@@ -42,7 +42,7 @@ func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) err
 	}
 	err = nep.emailer.SendEmail(ctx, email)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id))
+		slog.Error(fmt.Sprintf("Error sending email with id %d", email.Id), "Source", "NewEmailProcessor")
 		if nep.rc != nil && nep.schEvtRepo != nil {
 
 			nextRun := time.Now().Add(time.Duration(nep.rc.RetryTimeMs) * time.Millisecond)
@@ -56,7 +56,7 @@ func (nep *NewEmailProcessor) Process(ctx context.Context, evt events.Event) err
 	}
 	err = nep.emailStoreService.MarkEmailAsSent(ctx, email.Id)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d, err %s", email.Id, err.Error()))
+		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d, err %s", email.Id, err.Error()), "Source", "NewEmailProcessor")
 	}
 	return nil
 }

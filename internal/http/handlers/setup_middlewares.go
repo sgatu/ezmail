@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -39,5 +40,7 @@ func unauthorized(w http.ResponseWriter) {
 }
 
 func SetupMiddlewares(router *chi.Mux, appContext *internalhttp.AppContext) {
-	router.Use(authorizationMiddleware(appContext))
+	if len(os.Getenv("AUTH_TOKEN")) > 0 {
+		router.Use(authorizationMiddleware(appContext))
+	}
 }

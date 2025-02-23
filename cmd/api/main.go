@@ -8,7 +8,6 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/joho/godotenv"
 	"github.com/sgatu/ezmail/cmd/api/server"
 	internal_http "github.com/sgatu/ezmail/internal/http"
 	"github.com/sgatu/ezmail/internal/http/handlers"
@@ -17,10 +16,6 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
 	setupLog()
 	server := server.NewServer()
 	sqldb, err := sql.Open("mysql", os.Getenv("MYSQL_DSN"))
@@ -32,9 +27,9 @@ func main() {
 	appContext, cleanup := internal_http.SetupAppContext(db)
 	defer cleanup()
 	handlers.SetupMiddlewares(server, appContext)
-	slog.Debug("Setting up routes")
+	slog.Debug("Setting up routes", "Source", "Api-Main")
 	handlers.SetupRoutes(server, appContext)
-	slog.Info(fmt.Sprintf("Server listening on :%s", os.Getenv("PORT")))
+	slog.Info(fmt.Sprintf("Server listening on :%s", os.Getenv("PORT")), "Source", "Api-Main")
 	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), server)
 }
 

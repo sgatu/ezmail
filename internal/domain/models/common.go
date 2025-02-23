@@ -38,7 +38,7 @@ func (op *DateTime) UnmarshalJSON(bytes []byte) error {
 	}
 	dt, err := time.ParseInLocation("2006/01/02 15:04:05", strVal, time.UTC)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not parse invalid datetime %s", strVal))
+		slog.Warn(fmt.Sprintf("Could not parse invalid datetime %s", strVal), "Source", "DateTimeUnmarhaller")
 		return err
 	}
 	*op = DateTime(dt)
@@ -58,7 +58,7 @@ func (ea *EmailAddress) UnmarshalJSON(bytes []byte) error {
 	}
 	addr, err := mail.ParseAddress(strVal)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not parse invalid email %s", strVal))
+		slog.Warn(fmt.Sprintf("Could not parse invalid email %s", strVal), "Source", "EmailUnmarshaller")
 		return err
 	}
 	*ea = EmailAddress{

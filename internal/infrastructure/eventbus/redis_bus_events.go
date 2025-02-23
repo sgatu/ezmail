@@ -27,8 +27,7 @@ func NewRedisEventBus(redisConn thirdparty.BaseRedisClient, maxLen int64, events
 func (ce *RedisEventBus) Push(ctx context.Context, event events.Event) error {
 	eventData, err := event.Serialize()
 	if err != nil {
-
-		slog.Warn(fmt.Sprintf("Could not serialize event. Type = %s, Err = %s", event.GetType(), err))
+		slog.Warn(fmt.Sprintf("Could not serialize event. Type = %s, Err = %s", event.GetType(), err), "Source", "RedisEventBus")
 		return err
 	}
 	result := ce.redisConnection.XAdd(ctx, &redis.XAddArgs{
@@ -37,7 +36,7 @@ func (ce *RedisEventBus) Push(ctx context.Context, event events.Event) error {
 		MaxLen: ce.maxLen,
 	})
 	if result.Err() != nil {
-		slog.Warn(fmt.Sprintf("Could not send event to queue. Type = %s, Err = %s, Queue = %s", event.GetType(), err, ce.eventsTopic))
+		slog.Warn(fmt.Sprintf("Could not send event to queue. Type = %s, Err = %s, Queue = %s", event.GetType(), err, ce.eventsTopic), "Source", "RedisEventBus")
 		return result.Err()
 	}
 	return nil

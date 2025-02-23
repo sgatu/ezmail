@@ -31,7 +31,7 @@ func NewScheduler(repo events.ScheduledEventRepository, evBus events.EventBus, w
 func (sched *Scheduler) Run() {
 	sched.running = true
 	sched.wg.Add(1)
-	slog.Info("Starting scheduler")
+	slog.Info("Starting scheduler", "Source", "Scheduler")
 	go func() {
 		var cancel context.CancelFunc
 		var ctx context.Context
@@ -44,14 +44,14 @@ func (sched *Scheduler) Run() {
 			next, err := sched.schedRepo.GetNext(ctx)
 			if err != nil {
 				if !errors.Is(err, os.ErrDeadlineExceeded) {
-					slog.Warn(fmt.Errorf("could not get next scheduled event due to %w", err).Error())
+					slog.Warn(fmt.Errorf("could not get next scheduled event due to %w", err).Error(), "Source", "Scheduler")
 				}
 				continue
 			}
 			if next == nil {
 				continue
 			}
-			slog.Info(fmt.Sprintf("Found scheduled event %s, sending to queue", next.GetType()))
+			slog.Info(fmt.Sprintf("Found scheduled event %s, sending to queue", next.GetType()), "Source", "Scheduler")
 			sched.evBus.Push(ctx, next)
 			sched.schedRepo.RemoveNext(ctx)
 		}
@@ -63,6 +63,6 @@ func (sched *Scheduler) Run() {
 }
 
 func (sched *Scheduler) Stop() {
-	slog.Info("Shutting down scheduler")
+	slog.Info("Shutting down scheduler", "Source", "Scheduler")
 	sched.running = false
 }

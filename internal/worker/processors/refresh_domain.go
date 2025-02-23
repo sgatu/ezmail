@@ -30,23 +30,31 @@ type RefreshDomainProcessor struct {
 func (ndrp *RefreshDomainProcessor) Process(ctx context.Context, evt events.Event) error {
 	evtP, ok := evt.(*events.RefreshDomainEvent)
 	if !ok {
-		slog.Warn(fmt.Sprintf("Invalid event received by RefreshDomainProcessor. Type = %s", evt.GetType()))
+		slog.Warn(fmt.Sprintf("Invalid event received by RefreshDomainProcessor. Type = %s", evt.GetType()), "Source", "RefreshDomainProcessor")
 		return nil
 	}
 	slog.Info(fmt.Sprintf("Refreshing domain status for id: %d", evtP.DomainId))
 	di, err := ndrp.diRepository.GetDomainInfoById(ctx, evtP.DomainId)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not retrieve domain info by id %d, RefreshDomainProcessor", evtP.DomainId))
+		slog.Warn(fmt.Sprintf("Could not retrieve domain info by id %d, RefreshDomainProcessor", evtP.DomainId), "Source", "RefreshDomainProcessor")
 		return err
 	}
 	err = ndrp.identityMgr.RefreshIdentity(ctx, di)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not refresh domain status due to %s", err))
+		slog.Warn(fmt.Sprintf("Could not refresh domain status due to %s", err), "Source", "RefreshDomainProcessor")
 	}
 	if err == nil {
 		err = ndrp.diRepository.Save(ctx, di)
 	}
-	if !di.Validated {
+	allDnsVerified := true
+	dnsRecs, _ := di.GetDnsRecords()
+	for _, dnsRec := range dnsRecs {
+		if dnsRec.Status != domain.DNS_RECORD_STATUS_VERIFIED {
+			allDnsVerified = false
+			break
+		}
+	}
+	if !di.Validated || !allDnsVerified {
 		ok := evtP.PrepareNext()
 		if ok {
 			ndrp.sch.Push(

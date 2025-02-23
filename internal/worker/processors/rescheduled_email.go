@@ -33,7 +33,7 @@ type RescheduledEmailProcessor struct {
 func (rep *RescheduledEmailProcessor) Process(ctx context.Context, evt events.Event) error {
 	evtP, ok := evt.(*events.RescheduledEmailEvent)
 	if !ok {
-		slog.Warn(fmt.Sprintf("Invalid event received by RescheduledEmailProcessor. Type = %s", evt.GetType()))
+		slog.Warn(fmt.Sprintf("Invalid event received by RescheduledEmailProcessor. Type = %s", evt.GetType()), "Source", "RescheduledEmailProcessor")
 		return nil
 	}
 	email, err := rep.emailStoreService.PrepareEmail(ctx, evtP.Id)
@@ -56,7 +56,7 @@ func (rep *RescheduledEmailProcessor) Process(ctx context.Context, evt events.Ev
 	}
 	err = rep.emailStoreService.MarkEmailAsSent(ctx, evtP.Id)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d", email.Id))
+		slog.Warn(fmt.Sprintf("Could not mark email as sent. Id: %d", email.Id), "Source", "RescheduledEmailProcessor")
 	}
 
 	return nil

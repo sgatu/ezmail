@@ -29,13 +29,12 @@ func NewServer() *chi.Mux {
 				proto = "https"
 			}
 			status := nw.Status()
-			if status > 300 {
-				slog.Info(fmt.Sprintf("%s %s://%s%s", r.Method, proto, r.Host, r.RequestURI),
-					"From", r.RemoteAddr, "Status", nw.Status(), "Time", fmt.Sprintf("%dms", diff.Milliseconds()))
-			} else {
-				slog.Debug(fmt.Sprintf("%s %s://%s%s", r.Method, proto, r.Host, r.RequestURI),
-					"From", r.RemoteAddr, "Status", nw.Status(), "Time", fmt.Sprintf("%dms", diff.Milliseconds()))
+			logM := slog.Info
+			if status < 300 {
+				logM = slog.Debug
 			}
+			logM(fmt.Sprintf("%s %s://%s%s", r.Method, proto, r.Host, r.RequestURI),
+				"From", r.RemoteAddr, "Status", nw.Status(), "Time", fmt.Sprintf("%dms", diff.Milliseconds()))
 		})
 	})
 	return router

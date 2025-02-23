@@ -44,7 +44,7 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
 		nodeId = rand.Int63() % 1024
-		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId))
+		slog.Info(fmt.Sprintf("No snowflake node id defined (missing env NODE_ID), generated random as %d", nodeId), "Source", "AppContext")
 	}
 	snowflakeNode, err := snowflake.NewNode(nodeId)
 	if err != nil {
@@ -70,7 +70,7 @@ func SetupAppContext(db *bun.DB) (*AppContext, func()) {
 	maxLenEventsStr := os.Getenv("REDIS_EVENTS_MAX_LEN")
 	maxLenEvents, err := strconv.ParseInt(maxLenEventsStr, 10, 64)
 	if err != nil {
-		slog.Warn("Could not load redis max events, defaulting to 2500")
+		slog.Warn("Could not load redis max events, defaulting to 2500", "Source", "AppContext")
 		maxLenEvents = 2500
 	}
 	eventsTopic := os.Getenv("EVENTS_TOPIC")

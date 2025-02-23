@@ -16,10 +16,6 @@ import (
 )
 
 func main() {
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	panic(err)
-	// }
 	sqldb, err := sql.Open("mysql", os.Getenv("MYSQL_DSN"))
 	if err != nil {
 		panic(err)

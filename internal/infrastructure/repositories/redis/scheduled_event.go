@@ -29,7 +29,7 @@ func (repo *RedisScheduledEventRepository) Push(ctx context.Context, when time.T
 	if err != nil {
 		return err
 	}
-	slog.Info(fmt.Sprintf("Scheduling evt %s for %d", evt.GetType(), when.Unix()))
+	slog.Info(fmt.Sprintf("Scheduling evt %s for %d (%s)", evt.GetType(), when.Unix(), when), "Source", "RedisScheduledEventRepository")
 	result := repo.conn.ZAdd(ctx, repo.schKey, redis.Z{Score: float64(when.Unix()), Member: evtData})
 	if result.Err() != nil {
 		return result.Err()
@@ -47,7 +47,7 @@ func (repo *RedisScheduledEventRepository) GetNext(ctx context.Context) (events.
 	}
 	evt, err := events.RetrieveTypedEvent([]byte(*nextOne))
 	if err == nil {
-		slog.Info(fmt.Sprintf("Found scheduled event %s, at %s", evt.GetType(), time.Now().UTC()))
+		slog.Info(fmt.Sprintf("Found scheduled event %s, at %s", evt.GetType(), time.Now().UTC()), "Source", "RedisScheduledEventRepository")
 	}
 	return evt, err
 }
@@ -70,7 +70,7 @@ func (repo *RedisScheduledEventRepository) getNextOne(ctx context.Context) (*str
 		Max:   strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Count: 1,
 	})
-	slog.Debug(fmt.Sprintf("Checking next evt at %s", strconv.FormatInt(time.Now().UTC().Unix(), 10)))
+	slog.Debug(fmt.Sprintf("Checking next evt at %s", strconv.FormatInt(time.Now().UTC().Unix(), 10)), "Source", "RedisScheduledEventRepository")
 	if result.Err() != nil {
 		return nil, result.Err()
 	}
