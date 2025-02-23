@@ -89,7 +89,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
     },
     "reply_to": "email_to_reply@domain.com",
     "bcc": [ "bcc_email@somedomain.tld" ],
-    "when": "2024/10/12 20:37:00
+    "when": "2024/10/12 20:37:00"
 }
 ```
 
@@ -97,7 +97,7 @@ Email fields follow the RFC 5322 format and can include a display-name:
 Example:
 
 - name@domain.com -> email without a display-name
-- Name Surname <name@domain.com> -> email with a display-name
+- Name Surname &lt;name@domain.com&gt; -> email with a display-name
 
 **bcc**, **reply_to** and **when** fields are optional
 
