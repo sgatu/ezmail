@@ -22,6 +22,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	err = sqldb.Ping()
+	if err != nil {
+		panic(err)
+	}
 	db := bun.NewDB(sqldb, mysqldialect.New())
 	defer db.Close()
 	appContext, cleanup := internal_http.SetupAppContext(db)
