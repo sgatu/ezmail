@@ -167,4 +167,13 @@ Using the when field you can schedule an email for later, dates are UTC
 
 &ast; Keep in mind that once the domain is validated you will still need to request production access(disable sandbox) in your AWS console.
 
+## Run with docker
+- Go to docker folder
+- Copy .env.example to .env and configure it as you wish
+- Check docker-compose.yml for extra config, for example on how AWS credentials are shared with the docker instances
+- Run:
 
+```bash
+docker compose up -d
+```
+- Continue with domain registration and validation as explained in the **How to use it?** section
