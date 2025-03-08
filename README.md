@@ -73,7 +73,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 ### Endpoints
 
-** You can find a full api definiton under .dev/api.http **
+- **You can find a full api definiton under .dev/api.http**
 
 #### Domains
 
