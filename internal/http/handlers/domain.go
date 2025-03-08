@@ -119,7 +119,15 @@ func (dh *domainHandler) createDomain(w http.ResponseWriter, r *http.Request) {
 	}
 	err = dh.identityManager.CreateIdentity(r.Context(), domainInfo)
 	if err != nil {
-		common.ReturnReponse(err.Error(), 500, w)
+		common.ErrorResponse(
+			common.BaseError{
+				Message:       err.Error(),
+				Context:       map[string]string{},
+				Code:          500,
+				ErrIdentifier: "ERR_IDENTITY_PROVIDER",
+			},
+			w,
+		)
 		return
 	}
 	err = dh.domainInfoRepository.Save(r.Context(), domainInfo)

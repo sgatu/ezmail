@@ -56,6 +56,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       REFRESH_DOMAIN_RETRIES: ${REFRESH_DOMAIN_RETRIES:-96}
       REFRESH_DOMAIN_RETRY_SEC_BETWEEN: ${REFRESH_DOMAIN_RETRY_SEC_BETWEEN:-1800}
+    volumes:
+      - $HOME/.aws/credentials:/root/.aws/credentials:ro
     ports:
       - "3000:3000"
     depends_on:
@@ -82,6 +84,7 @@ services:
     depends_on:
       database:
         condition: service_healthy
-
+    volumes:
+      - $HOME/.aws/credentials:/root/.aws/credentials:ro
 volumes:
   db-data:
