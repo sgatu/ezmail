@@ -9,6 +9,9 @@ The project consists of two main components:
 
 This solution streamlines email operations with AWS SES, reducing complexity and improving efficiency.
 
+
+EzMail aims to be an open-source, self-hosted alternative to Resend. It is not affiliated with, endorsed by, or associated with Resend in any way.
+
 ## How to build
 
 ### To build the api binary execute
